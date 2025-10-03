@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:absensi_pkl_urban/screen/dashboard.dart';
+import 'package:absensi_pkl_urban/screen/main-page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -17,7 +17,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         fontFamily: 'Poppins',
       ),
-      home: const DashboardPage(),
+      home: const MainPage(),
     );
   }
 }
