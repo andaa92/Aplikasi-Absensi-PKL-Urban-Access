@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:absensi_pkl_urban/screen/main-page.dart';
+import 'package:absensi_pkl_urban/screen/landing-page.dart';
+import 'package:absensi_pkl_urban/screen/login-page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -17,7 +19,12 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         fontFamily: 'Poppins',
       ),
-      home: const MainPage(),
+      initialRoute: '/landing', // <-- Mulai dari LandingPage
+      routes: {
+        '/landing': (context) => const LandingPage(),
+        '/login': (context) => const LoginPage(),
+        '/main': (context) => const MainPage(),
+      },
     );
   }
 }
