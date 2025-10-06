@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:absensi_pkl_urban/screen/absensi-page.dart';
-import 'package:absensi_pkl_urban/screen/dashboard-page.dart';
+
 import 'package:absensi_pkl_urban/screen/profile-page.dart';
 import 'package:absensi_pkl_urban/navigation/navigation-item.dart';
 
@@ -16,7 +16,7 @@ class _MainPageState extends State<MainPage> {
 
   final List<Widget> _pages = const [
     AbsensiPage(),
-    DashboardPage(),
+    
     ProfilePage(),
   ];
 
