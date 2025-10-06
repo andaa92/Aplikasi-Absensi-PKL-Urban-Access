@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:absensi_pkl_urban/screen/main-page.dart';
-import 'package:absensi_pkl_urban/screen/form-izin.dart';
-import 'package:absensi_pkl_urban/screen/form-sakit.dart';
+import 'package:absensi_pkl_urban/screen/dashboard/form-izin.dart';
+import 'package:absensi_pkl_urban/screen/dashboard/form-sakit.dart';
 import 'package:absensi_pkl_urban/screen/landing-page.dart';
 import 'package:absensi_pkl_urban/screen/login-page.dart';
+import 'package:absensi_pkl_urban/screen/dashboard/succes-submit-page.dart';
+
+// Ensure that the file 'success-submit-page.dart' contains a class named 'SuccessSubmitPage'
+
 
 
 void main() {
@@ -33,6 +37,8 @@ class MyApp extends StatelessWidget {
         '/landing': (context) => const LandingPage(),
         '/login': (context) => const LoginPage(),
         '/main': (context) => const MainPage(),
+        '/success': (context) => const SuccessSubmitPage(),
+    
       },
     );
   }

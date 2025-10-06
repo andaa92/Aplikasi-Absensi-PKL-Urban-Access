@@ -1,3 +1,4 @@
+import 'package:absensi_pkl_urban/screen/dashboard/succes-submit-page.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -52,6 +53,8 @@ class _FormSakitState extends State<FormSakit> {
       );
       return;
     }
+    
+    Navigator.pushNamed(context, '/success');
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -63,7 +66,7 @@ class _FormSakitState extends State<FormSakit> {
 
   void _handleCancel() {
     Navigator.pop(context);
-    
+
     setState(() {
       _startDateController.clear();
       _endDateController.clear();

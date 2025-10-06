@@ -51,6 +51,8 @@ class _FormIzinState extends State<FormIzin> {
       );
       return;
     }
+    
+    Navigator.pushNamed(context, '/success');
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(

@@ -2,8 +2,8 @@ import 'package:absensi_pkl_urban/navigation/navigation-item.dart';
 import 'package:flutter/material.dart';
 import 'package:absensi_pkl_urban/screen/absensi-page.dart';
 import 'package:absensi_pkl_urban/screen/profile-page.dart';
-import 'package:absensi_pkl_urban/screen/form-izin.dart';
-import 'package:absensi_pkl_urban/screen/form-sakit.dart';
+import 'package:absensi_pkl_urban/screen/dashboard/form-izin.dart';
+import 'package:absensi_pkl_urban/screen/dashboard/form-sakit.dart';
 import 'package:absensi_pkl_urban/screen/main-page.dart';
 
 
@@ -137,13 +137,6 @@ class _DashboardPageState extends State<DashboardPage> {
                     Row(
                       children: [
                         Expanded(
-<<<<<<< HEAD
-                          child: _buildStatCard(
-                            '10',
-                            'Tepat Waktu',
-                            Icons.check_circle,
-                            const Color(0xFF4CAF50),
-=======
                           child: GestureDetector(
                             onTap: () {
                              Navigator.pushReplacement(
@@ -160,7 +153,6 @@ class _DashboardPageState extends State<DashboardPage> {
                               Icons.check_circle,
                               const Color(0xFF4CAF50),
                             ),
->>>>>>> 3cc69af82be0a5ca4317fce64d552a0e6a51ddc4
                           ),
                         ),
                         const SizedBox(width: 10),
