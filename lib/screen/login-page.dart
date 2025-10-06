@@ -25,55 +25,57 @@ class _LoginPageState extends State<LoginPage> {
       backgroundColor: Colors.white,
       body: Column(
         children: [
-          // Header dengan gradient biru
+          // Header dengan gradient biru dan decorative circles
           Container(
             height: 180,
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
                 colors: [
-                  Color(0xFF0080FF),
-                  Color(0xFF0099FF),
+                  Color(0xFF1E90FF),
+                  Color(0xFF00BFFF),
                 ],
               ),
             ),
             child: Stack(
               children: [
-                // Decorative circles
+                // Large decorative circle - top center
                 Positioned(
-                  left: -50,
-                  top: 30,
+                  left: MediaQuery.of(context).size.width / 2 - 180,
+                  top: -120,
                   child: Container(
-                    width: 150,
-                    height: 150,
+                    width: 360,
+                    height: 360,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.white.withOpacity(0.1),
+                      color: Colors.white.withOpacity(0.12),
                     ),
                   ),
                 ),
+                // Medium decorative circle - left side
                 Positioned(
-                  right: -30,
+                  left: -80,
                   top: -20,
                   child: Container(
-                    width: 120,
-                    height: 120,
+                    width: 200,
+                    height: 200,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.white.withOpacity(0.1),
+                      color: Colors.white.withOpacity(0.08),
                     ),
                   ),
                 ),
-                // Text "login email & password"
-                const Padding(
-                  padding: EdgeInsets.only(left: 16, top: 40),
-                  child: Text(
-                    'login email & password',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w400,
+                // Small decorative circle - right side
+                Positioned(
+                  right: -40,
+                  top: 40,
+                  child: Container(
+                    width: 140,
+                    height: 140,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withOpacity(0.1),
                     ),
                   ),
                 ),
@@ -86,72 +88,62 @@ class _LoginPageState extends State<LoginPage> {
               decoration: const BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(30),
-                  topRight: Radius.circular(30),
+                  topLeft: Radius.circular(35),
+                  topRight: Radius.circular(35),
                 ),
               ),
-              transform: Matrix4.translationValues(0, -30, 0),
+              transform: Matrix4.translationValues(0, -35, 0),
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
+                padding: const EdgeInsets.symmetric(horizontal: 28),
                 child: Column(
                   children: [
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 35),
                     // Logo Medima
                     Column(
                       children: [
                         // Logo M dengan warna merah
                         Container(
-                          child: const Text(
-                            'm',
-                            style: TextStyle(
-                              fontSize: 48,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFFE31E24),
-                              fontStyle: FontStyle.italic,
-                            ),
-                          ),
-                        ),
-                        const Text(
-                          'MEDIMA',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.grey,
-                            letterSpacing: 2,
+                          height: 60, // bisa diatur sesuai ukuran logo
+                          child: Image.asset(
+                            'assets/medima.jpeg',
+                            width: MediaQuery.of(context).size.width *
+                                0.35, // 35% dari lebar layar
+                            height: MediaQuery.of(context).size.width * 0.35,
+                            fit: BoxFit.cover, // atau BoxFit.fill
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 35),
                     // Selamat Datang
                     const Text(
                       'Selamat Datang!',
                       style: TextStyle(
-                        fontSize: 22,
+                        fontSize: 24,
                         fontWeight: FontWeight.bold,
                         color: Colors.black87,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     const Text(
-                      'Silahkan login ke Akun Anda',
+                      'Silahkan login untuk akun Anda',
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: 13,
                         color: Colors.grey,
                         fontWeight: FontWeight.w400,
                       ),
                     ),
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 32),
                     // Email Input
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Padding(
-                          padding: EdgeInsets.only(left: 4, bottom: 8),
+                          padding: EdgeInsets.only(left: 4, bottom: 10),
                           child: Text(
                             'Masukan email yang telah terdaftar',
                             style: TextStyle(
-                              fontSize: 12,
+                              fontSize: 11,
                               color: Colors.grey,
                             ),
                           ),
@@ -159,15 +151,11 @@ class _LoginPageState extends State<LoginPage> {
                         Container(
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(25),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey.withOpacity(0.1),
-                                spreadRadius: 1,
-                                blurRadius: 10,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
+                            borderRadius: BorderRadius.circular(30),
+                            border: Border.all(
+                              color: Colors.grey.shade300,
+                              width: 1,
+                            ),
                           ),
                           child: TextField(
                             controller: _emailController,
@@ -179,35 +167,35 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                               prefixIcon: Icon(
                                 Icons.email_outlined,
-                                color: Colors.grey.shade400,
-                                size: 20,
+                                color: Colors.grey.shade500,
+                                size: 22,
                               ),
                               border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(25),
+                                borderRadius: BorderRadius.circular(30),
                                 borderSide: BorderSide.none,
                               ),
                               filled: true,
                               fillColor: Colors.white,
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 20,
-                                vertical: 16,
+                                vertical: 18,
                               ),
                             ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 22),
                     // Password Input
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Padding(
-                          padding: EdgeInsets.only(left: 4, bottom: 8),
+                          padding: EdgeInsets.only(left: 4, bottom: 10),
                           child: Text(
                             'Pastikan password yang Anda masukan benar',
                             style: TextStyle(
-                              fontSize: 12,
+                              fontSize: 11,
                               color: Colors.grey,
                             ),
                           ),
@@ -215,15 +203,11 @@ class _LoginPageState extends State<LoginPage> {
                         Container(
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(25),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey.withOpacity(0.1),
-                                spreadRadius: 1,
-                                blurRadius: 10,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
+                            borderRadius: BorderRadius.circular(30),
+                            border: Border.all(
+                              color: Colors.grey.shade300,
+                              width: 1,
+                            ),
                           ),
                           child: TextField(
                             controller: _passwordController,
@@ -236,16 +220,16 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                               prefixIcon: Icon(
                                 Icons.lock_outline,
-                                color: Colors.grey.shade400,
-                                size: 20,
+                                color: Colors.grey.shade500,
+                                size: 22,
                               ),
                               suffixIcon: IconButton(
                                 icon: Icon(
                                   _isPasswordVisible
                                       ? Icons.visibility_outlined
                                       : Icons.visibility_off_outlined,
-                                  color: Colors.grey.shade400,
-                                  size: 20,
+                                  color: Colors.grey.shade500,
+                                  size: 22,
                                 ),
                                 onPressed: () {
                                   setState(() {
@@ -254,25 +238,25 @@ class _LoginPageState extends State<LoginPage> {
                                 },
                               ),
                               border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(25),
+                                borderRadius: BorderRadius.circular(30),
                                 borderSide: BorderSide.none,
                               ),
                               filled: true,
                               fillColor: Colors.white,
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 20,
-                                vertical: 16,
+                                vertical: 18,
                               ),
                             ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 35),
                     // Login Button
                     SizedBox(
                       width: double.infinity,
-                      height: 50,
+                      height: 52,
                       child: ElevatedButton(
                         onPressed: () {
                           String email = _emailController.text;
@@ -289,11 +273,11 @@ class _LoginPageState extends State<LoginPage> {
                           }
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF0080FF),
+                          backgroundColor: const Color(0xFF0099FF),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(25),
+                            borderRadius: BorderRadius.circular(30),
                           ),
-                          elevation: 2,
+                          elevation: 0,
                         ),
                         child: const Text(
                           'Login',
@@ -305,16 +289,16 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 18),
                     // Login dengan cara cepat
                     const Text(
                       'Login dengan cara cepat',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 11,
                         color: Colors.grey,
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 22),
                     // Fingerprint and Face ID buttons
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -323,20 +307,17 @@ class _LoginPageState extends State<LoginPage> {
                         Column(
                           children: [
                             Container(
-                              width: 50,
-                              height: 50,
+                              width: 56,
+                              height: 56,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: const Color(0xFF00BCD4),
-                                  width: 2,
-                                ),
+                                color: const Color(0xFFE8F5F9),
                               ),
                               child: IconButton(
                                 icon: const Icon(
                                   Icons.fingerprint,
                                   color: Color(0xFF00BCD4),
-                                  size: 28,
+                                  size: 32,
                                 ),
                                 onPressed: () {
                                   // Handle fingerprint login
@@ -348,31 +329,28 @@ class _LoginPageState extends State<LoginPage> {
                             const Text(
                               'Finger Print',
                               style: TextStyle(
-                                fontSize: 11,
+                                fontSize: 10,
                                 color: Colors.grey,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(width: 40),
+                        const SizedBox(width: 45),
                         // Face ID
                         Column(
                           children: [
                             Container(
-                              width: 50,
-                              height: 50,
+                              width: 56,
+                              height: 56,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: const Color(0xFF00BCD4),
-                                  width: 2,
-                                ),
+                                color: const Color(0xFFE8F5F9),
                               ),
                               child: IconButton(
                                 icon: const Icon(
                                   Icons.face,
                                   color: Color(0xFF00BCD4),
-                                  size: 28,
+                                  size: 32,
                                 ),
                                 onPressed: () {
                                   // Handle face ID login
@@ -384,7 +362,7 @@ class _LoginPageState extends State<LoginPage> {
                             const Text(
                               'Face ID',
                               style: TextStyle(
-                                fontSize: 11,
+                                fontSize: 10,
                                 color: Colors.grey,
                               ),
                             ),
@@ -392,7 +370,7 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 35),
                   ],
                 ),
               ),

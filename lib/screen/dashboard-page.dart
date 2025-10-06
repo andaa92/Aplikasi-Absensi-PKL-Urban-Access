@@ -113,7 +113,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         Expanded(
                           child: _buildStatCard(
                             '10',
-                            'Hadir Waktu',
+                            'Tepat Waktu',
                             Icons.check_circle,
                             const Color(0xFF4CAF50),
                           ),
@@ -260,7 +260,8 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _buildStatCard(String count, String label, IconData icon, Color color) {
+  Widget _buildStatCard(
+      String count, String label, IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
@@ -413,15 +414,15 @@ class _DashboardPageState extends State<DashboardPage> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: status == 'Hadir Waktu' 
+              color: status == 'Hadir Waktu'
                   ? const Color(0xFF4CAF50).withOpacity(0.1)
                   : const Color(0xFFFF8A65).withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
               status == 'Hadir Waktu' ? Icons.check_circle : Icons.close,
-              color: status == 'Hadir Waktu' 
-                  ? const Color(0xFF4CAF50) 
+              color: status == 'Hadir Waktu'
+                  ? const Color(0xFF4CAF50)
                   : const Color(0xFFFF8A65),
               size: 24,
             ),

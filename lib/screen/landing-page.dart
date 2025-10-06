@@ -56,7 +56,7 @@ class _LandingPageState extends State<LandingPage> {
 
               const SizedBox(height: 40),
 
-              // Logo / animasi
+              // Logo / animasi utama
               Expanded(
                 child: Center(
                   child: Stack(
@@ -93,28 +93,14 @@ class _LandingPageState extends State<LandingPage> {
                           shape: BoxShape.circle,
                           color: Colors.white,
                         ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
-                            Text(
-                              "UA",
-                              style: TextStyle(
-                                fontSize: 40,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF0080FF),
-                              ),
-                            ),
-                            SizedBox(height: 8),
-                            Text(
-                              "URBAN ACCESS",
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 1.2,
-                                color: Colors.black87,
-                              ),
-                            ),
-                          ],
+                        // Ganti teks UA & URBAN ACCESS jadi logo
+                        child: Center(
+                          child: Image.asset(
+                            'assets/urbanaccess.jpeg', // pastikan path ini benar
+                            width: 100, // sesuaikan ukuran logo
+                            height: 100,
+                            fit: BoxFit.contain,
+                          ),
                         ),
                       ),
                     ],
