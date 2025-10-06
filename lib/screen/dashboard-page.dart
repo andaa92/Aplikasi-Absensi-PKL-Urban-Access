@@ -1,4 +1,11 @@
+import 'package:absensi_pkl_urban/navigation/navigation-item.dart';
 import 'package:flutter/material.dart';
+import 'package:absensi_pkl_urban/screen/absensi-page.dart';
+import 'package:absensi_pkl_urban/screen/profile-page.dart';
+import 'package:absensi_pkl_urban/screen/form-izin.dart';
+import 'package:absensi_pkl_urban/screen/form-sakit.dart';
+import 'package:absensi_pkl_urban/screen/main-page.dart';
+
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({Key? key}) : super(key: key);
@@ -7,8 +14,11 @@ class DashboardPage extends StatefulWidget {
   State<DashboardPage> createState() => _DashboardPageState();
 }
 
+
 class _DashboardPageState extends State<DashboardPage> {
+   
   @override
+    
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
@@ -27,6 +37,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 bottomRight: Radius.circular(30),
               ),
             ),
+            
             child: Column(
               children: [
                 Row(
@@ -38,8 +49,11 @@ class _DashboardPageState extends State<DashboardPage> {
                           onPressed: () {},
                           icon: const Icon(Icons.logout, color: Colors.white),
                         ),
+                        
                         IconButton(
-                          onPressed: () {},
+                          onPressed: () {
+                            setState(() {});
+                          },
                           icon: const Icon(Icons.refresh, color: Colors.white),
                         ),
                       ],
@@ -55,7 +69,17 @@ class _DashboardPageState extends State<DashboardPage> {
                           ),
                         ),
                         const SizedBox(width: 10),
-                        Container(
+
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const MainPage(initialIndex: 2),
+                              ),
+                            );
+                          },
+                          child: Container(
                           width: 35,
                           height: 35,
                           decoration: const BoxDecoration(
@@ -68,7 +92,9 @@ class _DashboardPageState extends State<DashboardPage> {
                             size: 20,
                           ),
                         ),
+                        ),
                       ],
+
                     ),
                   ],
                 ),
@@ -111,20 +137,49 @@ class _DashboardPageState extends State<DashboardPage> {
                     Row(
                       children: [
                         Expanded(
+<<<<<<< HEAD
                           child: _buildStatCard(
                             '10',
                             'Tepat Waktu',
                             Icons.check_circle,
                             const Color(0xFF4CAF50),
+=======
+                          child: GestureDetector(
+                            onTap: () {
+                             Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const MainPage(initialIndex: 0),
+                              ),
+                            );
+                            },
+
+                            child: _buildStatCard(
+                              '10',
+                              'Hadir Tepat Waktu',
+                              Icons.check_circle,
+                              const Color(0xFF4CAF50),
+                            ),
+>>>>>>> 3cc69af82be0a5ca4317fce64d552a0e6a51ddc4
                           ),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
-                          child: _buildStatCard(
-                            '10',
-                            'Terlambat',
-                            Icons.cancel,
-                            const Color(0xFFE57373),
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const MainPage(initialIndex: 0),
+                              ),
+                            );
+                            },
+                            child: _buildStatCard(
+                              '10',
+                              'Terlambat',
+                              Icons.cancel,
+                              const Color(0xFFE57373),
+                            ),
                           ),
                         ),
                       ],
@@ -133,20 +188,40 @@ class _DashboardPageState extends State<DashboardPage> {
                     Row(
                       children: [
                         Expanded(
-                          child: _buildStatCard(
-                            '10',
-                            'Izin',
-                            Icons.error,
-                            const Color(0xFFFFD54F),
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const MainPage(initialIndex: 0),
+                              ),
+                            );
+                            },
+                            child: _buildStatCard(
+                              '10',
+                              'Izin',
+                              Icons.error,
+                              const Color(0xFFFFD54F),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
-                          child: _buildStatCard(
-                            '10',
-                            'Sakit',
-                            Icons.medical_services,
-                            const Color(0xFFFF8A65),
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const MainPage(initialIndex: 0),
+                              ),
+                            );
+                            },
+                            child: _buildStatCard(
+                              '10',
+                              'Sakit',
+                              Icons.medical_services,
+                              const Color(0xFFFF8A65),
+                            ),
                           ),
                         ),
                       ],
@@ -195,23 +270,36 @@ class _DashboardPageState extends State<DashboardPage> {
                     const SizedBox(height: 15),
 
                     // Action Buttons
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildActionButton(
-                            'Izin',
-                            const Color(0xFF4FC3F7),
-                          ),
+                   Row(
+                    children: [
+                      Expanded(
+                        child: _buildActionButton(
+                          'Izin',
+                          const Color(0xFF4FC3F7),
+                          () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const FormIzin()),
+                            );
+                          },
                         ),
-                        const SizedBox(width: 15),
-                        Expanded(
-                          child: _buildActionButton(
-                            'Sakit',
-                            const Color(0xFF4FC3F7),
-                          ),
+                      ),
+                      const SizedBox(width: 15),
+                      Expanded(
+                        child: _buildActionButton(
+                          'Sakit',
+                          const Color(0xFF4FC3F7),
+                          () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const FormSakit()),
+                            );
+                     
+                          },
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
+                  ),
 
                     const SizedBox(height: 25),
 
@@ -259,6 +347,8 @@ class _DashboardPageState extends State<DashboardPage> {
       ),
     );
   }
+  
+  
 
   Widget _buildStatCard(
       String count, String label, IconData icon, Color color) {
@@ -365,9 +455,9 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _buildActionButton(String label, Color color) {
+   Widget _buildActionButton(String label, Color color, VoidCallback onPressed) {
     return ElevatedButton(
-      onPressed: () {},
+      onPressed: onPressed,
       style: ElevatedButton.styleFrom(
         backgroundColor: color,
         padding: const EdgeInsets.symmetric(vertical: 15),
@@ -394,8 +484,20 @@ class _DashboardPageState extends State<DashboardPage> {
     String keluar,
     Color statusColor,
     String status,
+    
   ) {
-    return Container(
+
+    return GestureDetector(
+    onTap: () {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const MainPage(initialIndex: 0),
+        ),
+      );
+    },
+
+    child: Container(
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -492,6 +594,9 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
         ],
       ),
+    )
     );
+     
   }
 }
+
