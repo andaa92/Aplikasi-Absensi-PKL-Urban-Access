@@ -1,4 +1,5 @@
 import 'package:absensi_pkl_urban/navigation/navigation-item.dart';
+import 'package:absensi_pkl_urban/screen/landing-page.dart';
 import 'package:flutter/material.dart';
 import 'package:absensi_pkl_urban/screen/absensi-page.dart';
 import 'package:absensi_pkl_urban/screen/profile-page.dart';
@@ -46,7 +47,14 @@ class _DashboardPageState extends State<DashboardPage> {
                     Row(
                       children: [
                         IconButton(
-                          onPressed: () {},
+                          onPressed: () {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const LandingPage(),
+                              ),
+                            );
+                          },
                           icon: const Icon(Icons.logout, color: Colors.white),
                         ),
                         
