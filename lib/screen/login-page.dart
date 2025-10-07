@@ -1,4 +1,11 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'dart:io';
+
+
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -12,12 +19,88 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
 
-  @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
+  Future<String> _getDeviceId() async {
+  final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+  String deviceId = 'unknown_device';
+
+  try {
+    if (Platform.isAndroid) {
+      AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
+      deviceId = androidInfo.id ?? androidInfo.serialNumber ?? 'android_unknown';
+    } else if (Platform.isIOS) {
+      IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
+      deviceId = iosInfo.identifierForVendor ?? 'ios_unknown';
+    } else {
+      deviceId = 'unknown_platform';
+    }
+  } catch (e) {
+    print('Gagal mendapatkan device ID: $e');
   }
+
+  print('🔍 Device ID Terdeteksi: $deviceId');
+  return deviceId;
+}
+
+
+Future<void> _login() async {
+  String email = _emailController.text.trim();
+  String password = _passwordController.text.trim();
+
+  if (email.isEmpty || password.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Email dan Password wajib diisi")),
+    );
+    return;
+  }
+
+  try {
+    // 🔹 Ambil ID Device otomatis
+    final deviceId = await _getDeviceId();
+
+    final url = Uri.parse('https://hr.urbanaccess.net/api/login');
+    final response = await http.post(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: jsonEncode({
+        'email': email,
+        'password': password,
+        'id_device': deviceId,
+      }),
+    );
+
+    print('Response body: ${response.body}');
+    var data = jsonDecode(response.body);
+
+    if (response.statusCode == 200 && data['statusCode'] == 200) {
+      // Simpan data ke lokal
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString('email', data['email'] ?? '');
+      await prefs.setString('id_device', data['id_device'] ?? deviceId);
+
+      // Tampilkan pesan sukses
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(data['msg'] ?? "Login berhasil")),
+      );
+
+      // Arahkan ke halaman utama
+      Navigator.pushReplacementNamed(context, '/main');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(data['msg'] ?? "Login gagal")),
+      );
+    }
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Terjadi kesalahan: $e")),
+    );
+  }
+}
+
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -259,18 +342,7 @@ class _LoginPageState extends State<LoginPage> {
                       height: 52,
                       child: ElevatedButton(
                         onPressed: () {
-                          String email = _emailController.text;
-                          String password = _passwordController.text;
-
-                          if (email.isNotEmpty && password.isNotEmpty) {
-                            Navigator.pushReplacementNamed(context, '/main');
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content:
-                                      Text("Email dan Password wajib diisi")),
-                            );
-                          }
+                          _login();
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF0099FF),
