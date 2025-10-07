@@ -123,6 +123,7 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+<<<<<<< HEAD
   flutter_web_plugins:
     dependency: transitive
     description: flutter
@@ -208,6 +209,16 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.2.2"
+=======
+  intl:
+    dependency: "direct main"
+    description:
+      name: intl
+      sha256: "3df61194eb431efc39c4ceba583b95633a403f46c9fd341e550ce0bfa50e9aa5"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.20.2"
+>>>>>>> 2b97953b5a079eb5efaa83c924a61d08af4ec9ff
   leak_tracker:
     dependency: transitive
     description:
