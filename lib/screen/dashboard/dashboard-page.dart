@@ -1,12 +1,13 @@
 import 'package:absensi_pkl_urban/navigation/navigation-item.dart';
-import 'package:absensi_pkl_urban/screen/landing-page.dart';
+import 'package:absensi_pkl_urban/screen/dashboard/absen-face.dart';
+import 'package:absensi_pkl_urban/screen/login/landing-page.dart';
 import 'package:flutter/material.dart';
 import 'package:absensi_pkl_urban/screen/absensi-page.dart';
 import 'package:absensi_pkl_urban/screen/profile-page.dart';
 import 'package:absensi_pkl_urban/screen/dashboard/form-izin.dart';
 import 'package:absensi_pkl_urban/screen/dashboard/form-sakit.dart';
 import 'package:absensi_pkl_urban/screen/main-page.dart';
-
+import 'package:absensi_pkl_urban/screen/dashboard/absen-finger.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({Key? key}) : super(key: key);
@@ -15,11 +16,8 @@ class DashboardPage extends StatefulWidget {
   State<DashboardPage> createState() => _DashboardPageState();
 }
 
-
 class _DashboardPageState extends State<DashboardPage> {
-   
   @override
-    
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
@@ -38,7 +36,6 @@ class _DashboardPageState extends State<DashboardPage> {
                 bottomRight: Radius.circular(30),
               ),
             ),
-            
             child: Column(
               children: [
                 Row(
@@ -57,7 +54,6 @@ class _DashboardPageState extends State<DashboardPage> {
                           },
                           icon: const Icon(Icons.logout, color: Colors.white),
                         ),
-                        
                         IconButton(
                           onPressed: () {
                             setState(() {});
@@ -77,32 +73,31 @@ class _DashboardPageState extends State<DashboardPage> {
                           ),
                         ),
                         const SizedBox(width: 10),
-
                         GestureDetector(
                           onTap: () {
                             Navigator.pushReplacement(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => const MainPage(initialIndex: 2),
+                                builder: (context) =>
+                                    const MainPage(initialIndex: 2),
                               ),
                             );
                           },
                           child: Container(
-                          width: 35,
-                          height: 35,
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
+                            width: 35,
+                            height: 35,
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.person,
+                              color: Color(0xFF29B6F6),
+                              size: 20,
+                            ),
                           ),
-                          child: const Icon(
-                            Icons.person,
-                            color: Color(0xFF29B6F6),
-                            size: 20,
-                          ),
-                        ),
                         ),
                       ],
-
                     ),
                   ],
                 ),
@@ -147,14 +142,14 @@ class _DashboardPageState extends State<DashboardPage> {
                         Expanded(
                           child: GestureDetector(
                             onTap: () {
-                             Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const MainPage(initialIndex: 0),
-                              ),
-                            );
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const MainPage(initialIndex: 0),
+                                ),
+                              );
                             },
-
                             child: _buildStatCard(
                               '10',
                               'Hadir Tepat Waktu',
@@ -168,11 +163,12 @@ class _DashboardPageState extends State<DashboardPage> {
                           child: GestureDetector(
                             onTap: () {
                               Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const MainPage(initialIndex: 0),
-                              ),
-                            );
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const MainPage(initialIndex: 0),
+                                ),
+                              );
                             },
                             child: _buildStatCard(
                               '10',
@@ -191,11 +187,12 @@ class _DashboardPageState extends State<DashboardPage> {
                           child: GestureDetector(
                             onTap: () {
                               Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const MainPage(initialIndex: 0),
-                              ),
-                            );
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const MainPage(initialIndex: 0),
+                                ),
+                              );
                             },
                             child: _buildStatCard(
                               '10',
@@ -210,11 +207,12 @@ class _DashboardPageState extends State<DashboardPage> {
                           child: GestureDetector(
                             onTap: () {
                               Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const MainPage(initialIndex: 0),
-                              ),
-                            );
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const MainPage(initialIndex: 0),
+                                ),
+                              );
                             },
                             child: _buildStatCard(
                               '10',
@@ -242,16 +240,36 @@ class _DashboardPageState extends State<DashboardPage> {
                     Row(
                       children: [
                         Expanded(
-                          child: _buildMethodCard(
-                            'Finger Print',
-                            Icons.fingerprint,
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const AbsenFinger(),
+                                ),
+                              );
+                            },
+                            child: _buildMethodCard(
+                              'Finger Print',
+                              Icons.fingerprint,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 15),
                         Expanded(
-                          child: _buildMethodCard(
-                            'Face ID',
-                            Icons.face,
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const AbsenFace(),
+                                ),
+                              );
+                            },
+                            child: _buildMethodCard(
+                              'Face ID',
+                              Icons.face,
+                            ),
                           ),
                         ),
                       ],
@@ -270,36 +288,37 @@ class _DashboardPageState extends State<DashboardPage> {
                     const SizedBox(height: 15),
 
                     // Action Buttons
-                   Row(
-                    children: [
-                      Expanded(
-                        child: _buildActionButton(
-                          'Izin',
-                          const Color(0xFF4FC3F7),
-                          () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => const FormIzin()),
-                            );
-                          },
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildActionButton(
+                            'Izin',
+                            const Color(0xFF4FC3F7),
+                            () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => const FormIzin()),
+                              );
+                            },
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 15),
-                      Expanded(
-                        child: _buildActionButton(
-                          'Sakit',
-                          const Color(0xFF4FC3F7),
-                          () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => const FormSakit()),
-                            );
-                     
-                          },
+                        const SizedBox(width: 15),
+                        Expanded(
+                          child: _buildActionButton(
+                            'Sakit',
+                            const Color(0xFF4FC3F7),
+                            () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => const FormSakit()),
+                              );
+                            },
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
 
                     const SizedBox(height: 25),
 
@@ -347,8 +366,6 @@ class _DashboardPageState extends State<DashboardPage> {
       ),
     );
   }
-  
-  
 
   Widget _buildStatCard(
       String count, String label, IconData icon, Color color) {
@@ -455,7 +472,7 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-   Widget _buildActionButton(String label, Color color, VoidCallback onPressed) {
+  Widget _buildActionButton(String label, Color color, VoidCallback onPressed) {
     return ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
@@ -484,119 +501,114 @@ class _DashboardPageState extends State<DashboardPage> {
     String keluar,
     Color statusColor,
     String status,
-    
   ) {
-
     return GestureDetector(
-    onTap: () {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const MainPage(initialIndex: 0),
-        ),
-      );
-    },
-
-    child: Container(
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 5,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: status == 'Hadir Waktu'
-                  ? const Color(0xFF4CAF50).withOpacity(0.1)
-                  : const Color(0xFFFF8A65).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
+        onTap: () {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const MainPage(initialIndex: 0),
             ),
-            child: Icon(
-              status == 'Hadir Waktu' ? Icons.check_circle : Icons.close,
-              color: status == 'Hadir Waktu'
-                  ? const Color(0xFF4CAF50)
-                  : const Color(0xFFFF8A65),
-              size: 24,
-            ),
+          );
+        },
+        child: Container(
+          padding: const EdgeInsets.all(15),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(15),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.1),
+                spreadRadius: 1,
+                blurRadius: 5,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  date,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: status == 'Hadir Waktu'
+                      ? const Color(0xFF4CAF50).withOpacity(0.1)
+                      : const Color(0xFFFF8A65).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  description,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.black54,
-                  ),
+                child: Icon(
+                  status == 'Hadir Waktu' ? Icons.check_circle : Icons.close,
+                  color: status == 'Hadir Waktu'
+                      ? const Color(0xFF4CAF50)
+                      : const Color(0xFFFF8A65),
+                  size: 24,
                 ),
-                const SizedBox(height: 8),
-                Row(
+              ),
+              const SizedBox(width: 15),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Text(
-                        masuk,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: Colors.black45,
-                        ),
+                    Text(
+                      date,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
                       ),
                     ),
-                    Expanded(
-                      child: Text(
-                        keluar,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: Colors.black45,
-                        ),
+                    const SizedBox(height: 4),
+                    Text(
+                      description,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.black54,
                       ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            masuk,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Colors.black45,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            keluar,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Colors.black45,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 10),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              status,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-                color: statusColor,
               ),
-            ),
+              const SizedBox(width: 10),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  status,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: statusColor,
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-    )
-    );
-     
+        ));
   }
 }
-
