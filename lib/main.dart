@@ -8,9 +8,17 @@ import 'package:absensi_pkl_urban/screen/login/landing-page.dart';
 import 'package:absensi_pkl_urban/screen/login/login-page.dart';
 import 'package:absensi_pkl_urban/screen/dashboard/succes-submit-page.dart';
 
+  import 'package:intl/date_symbol_data_local.dart';
+
+
+  
+
+
 // Ensure that the file 'success-submit-page.dart' contains a class named 'SuccessSubmitPage'
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('id_ID', null);
   runApp(const MyApp());
 }
 

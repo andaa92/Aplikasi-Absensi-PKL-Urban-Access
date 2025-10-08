@@ -114,26 +114,6 @@ class _FormSakitState extends State<FormSakit> {
                       children: [
                         Row(
                           children: [   
-                            GestureDetector(
-                              onTap: () {
-                                Navigator.pop(context); // Kembali ke halaman sebelumnya (Dashboard)
-                              },
-                              child:
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(
-                                Icons.arrow_back,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                            ),
-                            ),
-
-                            const SizedBox(width: 12),
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
@@ -146,6 +126,10 @@ class _FormSakitState extends State<FormSakit> {
                                 size: 20,
                               ),
                             ),
+                            
+
+                            const SizedBox(width: 12),
+                           
                           ],
                         ),
                         Row(

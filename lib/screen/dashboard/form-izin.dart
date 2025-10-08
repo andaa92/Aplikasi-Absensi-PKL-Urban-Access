@@ -109,40 +109,23 @@ class _FormIzinState extends State<FormIzin> {
                       children: [
                         Row(
                           children: [
-                            GestureDetector(
-                              onTap: () {
-                                Navigator.pop(context); // Kembali ke halaman sebelumnya (Dashboard)
-                              },
-                              
-                              child: Container(
+                               Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
                                   color: Colors.white.withOpacity(0.2),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: const Icon(
-                                Icons.arrow_back,
+                                Icons.refresh,
                                 color: Colors.white,
                                 size: 20,
                               ), 
                             ),
-                          ),
+                          
 
 
-                            const SizedBox(width: 12),
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              
-                              child: const Icon(
-                                Icons.refresh,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                            ),
+    
+                           
                           ],
                         ),
                         Row(
