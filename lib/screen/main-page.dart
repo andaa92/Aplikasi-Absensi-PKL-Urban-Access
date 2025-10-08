@@ -4,30 +4,15 @@ import 'package:absensi_pkl_urban/screen/absensi-page.dart';
 import 'package:absensi_pkl_urban/screen/profile-page.dart';
 import 'package:absensi_pkl_urban/navigation/navigation-item.dart';
 
-  import 'package:flutter/material.dart';
-  import 'package:absensi_pkl_urban/screen/absensi-page.dart';
-  import 'package:absensi_pkl_urban/screen/dashboard-page.dart';
-  import 'package:absensi_pkl_urban/screen/profile-page.dart';
-  import 'package:absensi_pkl_urban/navigation/navigation-item.dart';
-  
-  
-
-  class MainPage extends StatefulWidget {
-  final int initialIndex;
-  const MainPage({Key? key, this.initialIndex = 1}) : super(key: key);
+class MainPage extends StatefulWidget {
+  const MainPage({Key? key}) : super(key: key);
 
   @override
   State<MainPage> createState() => _MainPageState();
 }
 
 class _MainPageState extends State<MainPage> {
-  late int _currentIndex;
-
-  @override
-  void initState() {
-    super.initState();
-    _currentIndex = widget.initialIndex;
-  }
+  int _currentIndex = 1; 
 
   final List<Widget> _pages = const [
     AbsensiPage(),
