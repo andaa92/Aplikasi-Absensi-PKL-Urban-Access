@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:absensi_pkl_urban/models/profile_model.dart';
 import 'package:absensi_pkl_urban/models/kehadiran_model.dart';
 import 'package:absensi_pkl_urban/services/api_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({Key? key}) : super(key: key);
@@ -14,19 +16,48 @@ class _ProfilePageState extends State<ProfilePage> {
   int _selectedTab = 0;
   final ApiService apiService = ApiService();
 
-  late Future<ProfileModel> futureProfile;
-  late Future<List<KehadiranModel>> futureKehadiran;
+  Future<ProfileModel>? futureProfile;
+  Future<List<KehadiranModel>>? futureKehadiran;
+  String? userEmail;
+  bool isLoading = true; // <-- tambahin ini
 
   @override
   void initState() {
     super.initState();
-    const userEmail = 'rayfansatria14@gmail.com'; // ganti sesuai login
-    futureProfile = apiService.fetchProfile(userEmail);
-    futureKehadiran = apiService.fetchKehadiran(userEmail);
+    _loadUserEmail();
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Future<void> _loadUserEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedEmail = prefs.getString('email');
+
+    if (savedEmail != null) {
+      setState(() {
+        userEmail = savedEmail;
+        futureProfile = apiService.fetchProfile(userEmail!);
+        futureKehadiran = apiService.fetchKehadiran(userEmail!);
+        isLoading = false;
+      });
+    } else {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+ @override
+Widget build(BuildContext context) {
+  if (isLoading) {
+    return const Scaffold(
+      body: Center(child: CircularProgressIndicator()),
+    );
+  }
+
+  if (userEmail == null) {
+    return const Scaffold(
+      body: Center(child: Text("Email user tidak ditemukan")),
+    );
+  }
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -59,11 +90,16 @@ class _ProfilePageState extends State<ProfilePage> {
                             ),
                             icon: const Icon(Icons.refresh, color: Colors.white, size: 22),
                             onPressed: () {
-                              setState(() {
-                                const userEmail = 'destia@gmail.com';
-                                futureProfile = apiService.fetchProfile(userEmail);
-                                futureKehadiran = apiService.fetchKehadiran(userEmail);
-                              });
+                              if (userEmail != null) {
+                                setState(() {
+                                  futureProfile = apiService.fetchProfile(userEmail!);
+                                  futureKehadiran = apiService.fetchKehadiran(userEmail!);
+                                });
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text("Email user tidak ditemukan")),
+                                );
+                              }
                             },
                           ),
                         ],
@@ -352,20 +388,19 @@ class _ProfilePageState extends State<ProfilePage> {
 
   // 🔹 Tab Detail
   Widget _buildDetailTab(ProfileModel data) {
-     const userEmail = 'rayfansatria14@gmail.com';
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        children: [
-          _buildInfoRow(Icons.person, 'Email', userEmail),
-          const SizedBox(height: 18),
-          _buildInfoRow(Icons.apartment, 'Instansi', 'Urban Access'),
-          const SizedBox(height: 18),
-          _buildInfoRow(Icons.location_on, 'Lokasi', 'Bandung'),
-        ],
-      ),
-    );
-  }
+  return Padding(
+    padding: const EdgeInsets.all(20),
+    child: Column(
+      children: [
+        _buildInfoRow(Icons.person, 'Email', userEmail ?? '-'),
+        const SizedBox(height: 18),
+        _buildInfoRow(Icons.apartment, 'Instansi', 'Urban Access'),
+        const SizedBox(height: 18),
+        _buildInfoRow(Icons.location_on, 'Lokasi', 'Bandung'),
+      ],
+    ),
+  );
+}
 
   // 🔹 Widget Reusable Info Row
   Widget _buildInfoRow(IconData icon, String label, String value) {
