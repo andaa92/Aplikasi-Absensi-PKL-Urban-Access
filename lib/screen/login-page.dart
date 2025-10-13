@@ -6,7 +6,6 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'dart:io';
 
 
-
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
 
