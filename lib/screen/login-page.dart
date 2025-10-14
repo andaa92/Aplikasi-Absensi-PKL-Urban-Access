@@ -5,8 +5,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'dart:io';
 
-
-
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
 
@@ -20,87 +18,84 @@ class _LoginPageState extends State<LoginPage> {
   bool _isPasswordVisible = false;
 
   Future<String> _getDeviceId() async {
-  final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
-  String deviceId = 'unknown_device';
+    final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+    String deviceId = 'unknown_device';
 
-  try {
-    if (Platform.isAndroid) {
-      AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
-      deviceId = androidInfo.id ?? androidInfo.serialNumber ?? 'android_unknown';
-    } else if (Platform.isIOS) {
-      IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
-      deviceId = iosInfo.identifierForVendor ?? 'ios_unknown';
-    } else {
-      deviceId = 'unknown_platform';
+    try {
+      if (Platform.isAndroid) {
+        AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
+        deviceId =
+            androidInfo.id ?? androidInfo.serialNumber ?? 'android_unknown';
+      } else if (Platform.isIOS) {
+        IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
+        deviceId = iosInfo.identifierForVendor ?? 'ios_unknown';
+      } else {
+        deviceId = 'unknown_platform';
+      }
+    } catch (e) {
+      print('Gagal mendapatkan device ID: $e');
     }
-  } catch (e) {
-    print('Gagal mendapatkan device ID: $e');
+
+    print('🔍 Device ID Terdeteksi: $deviceId');
+    return deviceId;
   }
 
-  print('🔍 Device ID Terdeteksi: $deviceId');
-  return deviceId;
-}
+  Future<void> _login() async {
+    String email = _emailController.text.trim();
+    String password = _passwordController.text.trim();
 
-
-Future<void> _login() async {
-  String email = _emailController.text.trim();
-  String password = _passwordController.text.trim();
-
-  if (email.isEmpty || password.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Email dan Password wajib diisi")),
-    );
-    return;
-  }
-
-  try {
-    // 🔹 Ambil ID Device otomatis
-    final deviceId = await _getDeviceId();
-
-    final url = Uri.parse('https://hr.urbanaccess.net/api/login');
-    final response = await http.post(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: jsonEncode({
-        'email': email,
-        'password': password,
-        'id_device': deviceId,
-      }),
-    );
-
-    print('Response body: ${response.body}');
-    var data = jsonDecode(response.body);
-
-    if (response.statusCode == 200 && data['statusCode'] == 200) {
-      // Simpan data ke lokal
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.setString('email', data['email'] ?? '');
-      await prefs.setString('id_device', data['id_device'] ?? deviceId);
-
-      // Tampilkan pesan sukses
+    if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(data['msg'] ?? "Login berhasil")),
+        const SnackBar(content: Text("Email dan Password wajib diisi")),
+      );
+      return;
+    }
+
+    try {
+      // 🔹 Ambil ID Device otomatis
+      final deviceId = await _getDeviceId();
+
+      final url = Uri.parse('https://hr.urbanaccess.net/api/login');
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({
+          'email': email,
+          'password': password,
+          'id_device': deviceId,
+        }),
       );
 
-      // Arahkan ke halaman utama
-      Navigator.pushReplacementNamed(context, '/main');
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(data['msg'] ?? "Login gagal")),
-      );
+      print('Response body: ${response.body}');
+      var data = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && data['statusCode'] == 200) {
+        // Simpan data ke lokal
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setString('email', data['email'] ?? '');
+        await prefs.setString('id_device', data['id_device'] ?? deviceId);
+
+        // Tampilkan pesan sukses
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(data['msg'] ?? "Login berhasil")),
+        );
+
+        // Arahkan ke halaman utama
+        Navigator.pushReplacementNamed(context, '/main');
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(data['msg'] ?? "Login gagal")));
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Terjadi kesalahan: $e")));
     }
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Terjadi kesalahan: $e")),
-    );
   }
-}
-
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -115,10 +110,7 @@ Future<void> _login() async {
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFF1E90FF),
-                  Color(0xFF00BFFF),
-                ],
+                colors: [Color(0xFF1E90FF), Color(0xFF00BFFF)],
               ),
             ),
             child: Stack(
@@ -189,7 +181,8 @@ Future<void> _login() async {
                           height: 60, // bisa diatur sesuai ukuran logo
                           child: Image.asset(
                             'assets/medima.jpeg',
-                            width: MediaQuery.of(context).size.width *
+                            width:
+                                MediaQuery.of(context).size.width *
                                 0.35, // 35% dari lebar layar
                             height: MediaQuery.of(context).size.width * 0.35,
                             fit: BoxFit.cover, // atau BoxFit.fill
@@ -225,10 +218,7 @@ Future<void> _login() async {
                           padding: EdgeInsets.only(left: 4, bottom: 10),
                           child: Text(
                             'Masukan email yang telah terdaftar',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey,
-                            ),
+                            style: TextStyle(fontSize: 11, color: Colors.grey),
                           ),
                         ),
                         Container(
@@ -277,10 +267,7 @@ Future<void> _login() async {
                           padding: EdgeInsets.only(left: 4, bottom: 10),
                           child: Text(
                             'Pastikan password yang Anda masukan benar',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey,
-                            ),
+                            style: TextStyle(fontSize: 11, color: Colors.grey),
                           ),
                         ),
                         Container(
@@ -365,10 +352,7 @@ Future<void> _login() async {
                     // Login dengan cara cepat
                     const Text(
                       'Login dengan cara cepat',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey,
-                      ),
+                      style: TextStyle(fontSize: 11, color: Colors.grey),
                     ),
                     const SizedBox(height: 22),
                     // Fingerprint and Face ID buttons

@@ -1,4 +1,5 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.urbanaccess.absensipkl">
     <application
         android:label="absensi_pkl_urban"
         android:name="${applicationName}"
