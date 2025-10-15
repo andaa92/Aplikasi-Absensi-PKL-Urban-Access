@@ -1,9 +1,12 @@
-
 import 'package:flutter/material.dart';
 import 'package:absensi_pkl_urban/screen/absensi-page.dart';
 import 'package:absensi_pkl_urban/screen/profile-page.dart';
 import 'package:absensi_pkl_urban/navigation/navigation-item.dart';
 import 'package:absensi_pkl_urban/screen/dashboard-page.dart';
+import 'package:absensi_pkl_urban/screen/dashboard/form-izin.dart';
+import 'package:absensi_pkl_urban/screen/dashboard/dashboard-page.dart';
+import 'package:absensi_pkl_urban/screen/dashboard/form-sakit.dart';
+
 
   class MainPage extends StatefulWidget {
   final int initialIndex;
