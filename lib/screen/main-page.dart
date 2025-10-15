@@ -1,12 +1,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:absensi_pkl_urban/screen/absensi-page.dart';
-
 import 'package:absensi_pkl_urban/screen/profile-page.dart';
 import 'package:absensi_pkl_urban/navigation/navigation-item.dart';
 import 'package:absensi_pkl_urban/screen/dashboard-page.dart';
-  
-  
 
   class MainPage extends StatefulWidget {
   final int initialIndex;
@@ -17,17 +14,11 @@ import 'package:absensi_pkl_urban/screen/dashboard-page.dart';
 }
 
 class _MainPageState extends State<MainPage> {
-  late int _currentIndex;
-
-  @override
-  void initState() {
-    super.initState();
-    _currentIndex = widget.initialIndex;
-  }
+  int _currentIndex = 1; 
 
   final List<Widget> _pages = const [
     AbsensiPage(),
-    
+    ProfilePage(),
     ProfilePage(),
   ];
 

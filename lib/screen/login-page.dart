@@ -6,6 +6,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'dart:io';
 import 'package:local_auth/local_auth.dart';
 
+
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
 
@@ -151,10 +152,14 @@ class _LoginPageState extends State<LoginPage> {
             ),
           );
         }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Autentikasi biometrik ditolak")),
+        );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Gagal autentikasi biometrik: $e")),
+        SnackBar(content: Text("Terjadi kesalahan: $e")),
       );
     }
   }
