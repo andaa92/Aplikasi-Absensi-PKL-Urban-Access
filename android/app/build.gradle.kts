@@ -20,13 +20,13 @@ android {
     }
 
     defaultConfig {
-        // Ganti applicationId agar tidak bentrok dengan versi lama
-        applicationId = "com.urbanaccess.absensipkl"
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
-    }
+    applicationId = "com.urbanaccess.absensipkl"
+    minSdk = flutter.minSdkVersion
+    targetSdk = 34
+    versionCode = 1
+    versionName = "1.0"
+}
+
 
     buildTypes {
         release {

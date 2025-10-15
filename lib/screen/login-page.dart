@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'dart:io';
+import 'package:local_auth/local_auth.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -15,17 +16,33 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final LocalAuthentication _auth = LocalAuthentication(); // ✅ Tambahan
+
   bool _isPasswordVisible = false;
+  bool _hasLoggedInBefore = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkLoginHistory(); // ✅ cek apakah pernah login
+  }
+
+  Future<void> _checkLoginHistory() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    bool hasLogin =
+        prefs.containsKey('email') && prefs.containsKey('id_device');
+    setState(() {
+      _hasLoggedInBefore = hasLogin;
+    });
+  }
 
   Future<String> _getDeviceId() async {
     final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
     String deviceId = 'unknown_device';
-
     try {
       if (Platform.isAndroid) {
         AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
-        deviceId =
-            androidInfo.id ?? androidInfo.serialNumber ?? 'android_unknown';
+        deviceId = androidInfo.id ?? 'android_unknown';
       } else if (Platform.isIOS) {
         IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
         deviceId = iosInfo.identifierForVendor ?? 'ios_unknown';
@@ -35,8 +52,7 @@ class _LoginPageState extends State<LoginPage> {
     } catch (e) {
       print('Gagal mendapatkan device ID: $e');
     }
-
-    print('🔍 Device ID Terdeteksi: $deviceId');
+    print('🔍 Device ID: $deviceId');
     return deviceId;
   }
 
@@ -52,9 +68,7 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     try {
-      // 🔹 Ambil ID Device otomatis
       final deviceId = await _getDeviceId();
-
       final url = Uri.parse('https://hr.urbanaccess.net/api/login');
       final response = await http.post(
         url,
@@ -73,17 +87,19 @@ class _LoginPageState extends State<LoginPage> {
       var data = jsonDecode(response.body);
 
       if (response.statusCode == 200 && data['statusCode'] == 200) {
-        // Simpan data ke lokal
         SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setString('email', data['email'] ?? '');
+        await prefs.setString('email', data['email'] ?? email);
         await prefs.setString('id_device', data['id_device'] ?? deviceId);
+        await prefs.setString('token', data['token'] ?? '');
 
-        // Tampilkan pesan sukses
+        setState(() {
+          _hasLoggedInBefore = true;
+        });
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(data['msg'] ?? "Login berhasil")),
         );
 
-        // Arahkan ke halaman utama
         Navigator.pushReplacementNamed(context, '/main');
       } else {
         ScaffoldMessenger.of(
@@ -97,13 +113,59 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  // ✅ Logika login cepat (biometrik + validasi device)
+  Future<void> _loginCepat() async {
+    try {
+      bool canCheckBiometrics = await _auth.canCheckBiometrics;
+      bool isSupported = await _auth.isDeviceSupported();
+
+      if (!canCheckBiometrics || !isSupported) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Perangkat tidak mendukung biometrik")),
+        );
+        return;
+      }
+
+      bool didAuthenticate = await _auth.authenticate(
+        localizedReason: 'Gunakan biometrik untuk login cepat',
+        options: const AuthenticationOptions(biometricOnly: true),
+      );
+
+      if (didAuthenticate) {
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        final savedEmail = prefs.getString('email');
+        final savedDevice = prefs.getString('id_device');
+        final token = prefs.getString('token');
+        final currentDevice = await _getDeviceId();
+
+        // ✅ Pastikan device cocok
+        if (savedDevice == currentDevice && savedEmail != null) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text("Login cepat berhasil")));
+          Navigator.pushReplacementNamed(context, '/main');
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Perangkat tidak cocok, login manual diperlukan"),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Gagal autentikasi biometrik: $e")),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: Column(
         children: [
-          // Header dengan gradient biru dan decorative circles
+          // Header biru gradient (tidak diubah)
           Container(
             height: 180,
             decoration: const BoxDecoration(
@@ -115,7 +177,6 @@ class _LoginPageState extends State<LoginPage> {
             ),
             child: Stack(
               children: [
-                // Large decorative circle - top center
                 Positioned(
                   left: MediaQuery.of(context).size.width / 2 - 180,
                   top: -120,
@@ -128,7 +189,6 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                 ),
-                // Medium decorative circle - left side
                 Positioned(
                   left: -80,
                   top: -20,
@@ -141,7 +201,6 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                 ),
-                // Small decorative circle - right side
                 Positioned(
                   right: -40,
                   top: 40,
@@ -157,7 +216,8 @@ class _LoginPageState extends State<LoginPage> {
               ],
             ),
           ),
-          // White card container
+
+          // Isi body (tetap sama)
           Expanded(
             child: Container(
               decoration: const BoxDecoration(
@@ -173,25 +233,16 @@ class _LoginPageState extends State<LoginPage> {
                 child: Column(
                   children: [
                     const SizedBox(height: 35),
-                    // Logo Medima
-                    Column(
-                      children: [
-                        // Logo M dengan warna merah
-                        Container(
-                          height: 60, // bisa diatur sesuai ukuran logo
-                          child: Image.asset(
-                            'assets/medima.jpeg',
-                            width:
-                                MediaQuery.of(context).size.width *
-                                0.35, // 35% dari lebar layar
-                            height: MediaQuery.of(context).size.width * 0.35,
-                            fit: BoxFit.cover, // atau BoxFit.fill
-                          ),
-                        ),
-                      ],
+                    Container(
+                      height: 60,
+                      child: Image.asset(
+                        'assets/medima.jpeg',
+                        width: MediaQuery.of(context).size.width * 0.35,
+                        height: MediaQuery.of(context).size.width * 0.35,
+                        fit: BoxFit.cover,
+                      ),
                     ),
                     const SizedBox(height: 35),
-                    // Selamat Datang
                     const Text(
                       'Selamat Datang!',
                       style: TextStyle(
@@ -210,127 +261,24 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                     const SizedBox(height: 32),
-                    // Email Input
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Padding(
-                          padding: EdgeInsets.only(left: 4, bottom: 10),
-                          child: Text(
-                            'Masukan email yang telah terdaftar',
-                            style: TextStyle(fontSize: 11, color: Colors.grey),
-                          ),
-                        ),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(30),
-                            border: Border.all(
-                              color: Colors.grey.shade300,
-                              width: 1,
-                            ),
-                          ),
-                          child: TextField(
-                            controller: _emailController,
-                            decoration: InputDecoration(
-                              hintText: 'Email',
-                              hintStyle: TextStyle(
-                                color: Colors.grey.shade400,
-                                fontSize: 14,
-                              ),
-                              prefixIcon: Icon(
-                                Icons.email_outlined,
-                                color: Colors.grey.shade500,
-                                size: 22,
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(30),
-                                borderSide: BorderSide.none,
-                              ),
-                              filled: true,
-                              fillColor: Colors.white,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 18,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+
+                    // 🔹 Field email & password (tidak diubah)
+                    _buildTextField(
+                      'Email',
+                      Icons.email_outlined,
+                      _emailController,
                     ),
                     const SizedBox(height: 22),
-                    // Password Input
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Padding(
-                          padding: EdgeInsets.only(left: 4, bottom: 10),
-                          child: Text(
-                            'Pastikan password yang Anda masukan benar',
-                            style: TextStyle(fontSize: 11, color: Colors.grey),
-                          ),
-                        ),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(30),
-                            border: Border.all(
-                              color: Colors.grey.shade300,
-                              width: 1,
-                            ),
-                          ),
-                          child: TextField(
-                            controller: _passwordController,
-                            obscureText: !_isPasswordVisible,
-                            decoration: InputDecoration(
-                              hintText: 'Password',
-                              hintStyle: TextStyle(
-                                color: Colors.grey.shade400,
-                                fontSize: 14,
-                              ),
-                              prefixIcon: Icon(
-                                Icons.lock_outline,
-                                color: Colors.grey.shade500,
-                                size: 22,
-                              ),
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _isPasswordVisible
-                                      ? Icons.visibility_outlined
-                                      : Icons.visibility_off_outlined,
-                                  color: Colors.grey.shade500,
-                                  size: 22,
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    _isPasswordVisible = !_isPasswordVisible;
-                                  });
-                                },
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(30),
-                                borderSide: BorderSide.none,
-                              ),
-                              filled: true,
-                              fillColor: Colors.white,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 18,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                    _buildPasswordField(),
+
                     const SizedBox(height: 35),
-                    // Login Button
+
+                    // Tombol login utama
                     SizedBox(
                       width: double.infinity,
                       height: 52,
                       child: ElevatedButton(
-                        onPressed: () {
-                          _login();
-                        },
+                        onPressed: _login,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF0099FF),
                           shape: RoundedRectangleBorder(
@@ -348,84 +296,32 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 18),
-                    // Login dengan cara cepat
-                    const Text(
-                      'Login dengan cara cepat',
-                      style: TextStyle(fontSize: 11, color: Colors.grey),
-                    ),
-                    const SizedBox(height: 22),
-                    // Fingerprint and Face ID buttons
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // Fingerprint
-                        Column(
-                          children: [
-                            Container(
-                              width: 56,
-                              height: 56,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: const Color(0xFFE8F5F9),
-                              ),
-                              child: IconButton(
-                                icon: const Icon(
-                                  Icons.fingerprint,
-                                  color: Color(0xFF00BCD4),
-                                  size: 32,
-                                ),
-                                onPressed: () {
-                                  // Handle fingerprint login
-                                  print('Fingerprint login');
-                                },
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            const Text(
-                              'Finger Print',
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(width: 45),
-                        // Face ID
-                        Column(
-                          children: [
-                            Container(
-                              width: 56,
-                              height: 56,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: const Color(0xFFE8F5F9),
-                              ),
-                              child: IconButton(
-                                icon: const Icon(
-                                  Icons.face,
-                                  color: Color(0xFF00BCD4),
-                                  size: 32,
-                                ),
-                                onPressed: () {
-                                  // Handle face ID login
-                                  print('Face ID login');
-                                },
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            const Text(
-                              'Face ID',
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+
+                    // ✅ Tampilkan login cepat hanya jika pernah login
+                    if (_hasLoggedInBefore) ...[
+                      const SizedBox(height: 18),
+                      const Text(
+                        'Login dengan cara cepat',
+                        style: TextStyle(fontSize: 11, color: Colors.grey),
+                      ),
+                      const SizedBox(height: 22),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _buildQuickLoginButton(
+                            icon: Icons.fingerprint,
+                            label: 'Finger Print',
+                            onTap: _loginCepat,
+                          ),
+                          const SizedBox(width: 45),
+                          _buildQuickLoginButton(
+                            icon: Icons.face,
+                            label: 'Face ID',
+                            onTap: _loginCepat,
+                          ),
+                        ],
+                      ),
+                    ],
                     const SizedBox(height: 35),
                   ],
                 ),
@@ -434,6 +330,113 @@ class _LoginPageState extends State<LoginPage> {
           ),
         ],
       ),
+    );
+  }
+
+  // 🔹 Helper: textfield
+  Widget _buildTextField(
+    String hint,
+    IconData icon,
+    TextEditingController controller,
+  ) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: Colors.grey.shade300, width: 1),
+      ),
+      child: TextField(
+        controller: controller,
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+          prefixIcon: Icon(icon, color: Colors.grey.shade500, size: 22),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(30),
+            borderSide: BorderSide.none,
+          ),
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 18,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // 🔹 Helper: password field
+  Widget _buildPasswordField() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: Colors.grey.shade300, width: 1),
+      ),
+      child: TextField(
+        controller: _passwordController,
+        obscureText: !_isPasswordVisible,
+        decoration: InputDecoration(
+          hintText: 'Password',
+          hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+          prefixIcon: Icon(
+            Icons.lock_outline,
+            color: Colors.grey.shade500,
+            size: 22,
+          ),
+          suffixIcon: IconButton(
+            icon: Icon(
+              _isPasswordVisible
+                  ? Icons.visibility_outlined
+                  : Icons.visibility_off_outlined,
+              color: Colors.grey.shade500,
+              size: 22,
+            ),
+            onPressed: () {
+              setState(() {
+                _isPasswordVisible = !_isPasswordVisible;
+              });
+            },
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(30),
+            borderSide: BorderSide.none,
+          ),
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 18,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // 🔹 Helper: quick login button
+  Widget _buildQuickLoginButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return Column(
+      children: [
+        Container(
+          width: 56,
+          height: 56,
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            color: Color(0xFFE8F5F9),
+          ),
+          child: IconButton(
+            icon: Icon(icon, color: Color(0xFF00BCD4), size: 32),
+            onPressed: onTap,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+      ],
     );
   }
 }
