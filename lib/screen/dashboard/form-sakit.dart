@@ -1,6 +1,9 @@
 import 'package:absensi_pkl_urban/screen/dashboard/succes-submit-page.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class FormSakit extends StatefulWidget {
   const FormSakit({Key? key}) : super(key: key);
@@ -15,7 +18,28 @@ class _FormSakitState extends State<FormSakit> {
   final TextEditingController _endDateController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
 
-  Future<void> _selectDate(BuildContext context, TextEditingController controller) async {
+  String? _namaUser;
+  String? _emailUser;
+  String? _nsmUser;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _namaUser = prefs.getString('nama') ?? 'User';
+      _emailUser = prefs.getString('email') ?? '';
+      _nsmUser = prefs.getString('nsm') ?? '';
+      _nsmController.text = _nsmUser ?? '';
+    });
+  }
+
+  Future<void> _selectDate(
+      BuildContext context, TextEditingController controller) async {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
@@ -36,12 +60,13 @@ class _FormSakitState extends State<FormSakit> {
     );
     if (picked != null) {
       setState(() {
-        controller.text = DateFormat('dd/MM/yyyy').format(picked);
+        controller.text = DateFormat('yyyy-MM-dd').format(picked);
       });
     }
   }
 
-  void _handleSubmit() {
+  // 🔹 Kirim data ke API
+  Future<void> _handleSubmit() async {
     if (_startDateController.text.isEmpty ||
         _endDateController.text.isEmpty ||
         _descriptionController.text.isEmpty) {
@@ -53,20 +78,68 @@ class _FormSakitState extends State<FormSakit> {
       );
       return;
     }
-    
-    Navigator.pushNamed(context, '/success');
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Form berhasil disubmit'),
-        backgroundColor: Colors.green,
-      ),
-    );
+    if (_emailUser == null || _emailUser!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('User belum login atau email tidak ditemukan'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    try {
+      final response = await http.post(
+        Uri.parse('https://hr.urbanaccess.net/api/simpanSakit'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({
+          "userPkl": _emailUser,
+          "tanggal_mulai": _startDateController.text,
+          "tanggal_akhir": _endDateController.text,
+          "keterangan": _descriptionController.text,
+        }),
+      );
+
+      print('📡 RESPONSE SAKIT: ${response.body}');
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && data['statusCode'] == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(data['msg'] ?? 'Data sakit berhasil disimpan'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const SuccessSubmitPage()),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(data['msg'] ?? 'Gagal menyimpan data sakit'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      print('❌ ERROR SAKIT: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Terjadi kesalahan: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   void _handleCancel() {
     Navigator.pop(context);
-
     setState(() {
       _startDateController.clear();
       _endDateController.clear();
@@ -113,7 +186,7 @@ class _FormSakitState extends State<FormSakit> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Row(
-                          children: [   
+                          children: [
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
@@ -126,17 +199,14 @@ class _FormSakitState extends State<FormSakit> {
                                 size: 20,
                               ),
                             ),
-                            
-
                             const SizedBox(width: 12),
-                           
                           ],
                         ),
                         Row(
                           children: [
-                            const Text(
-                              'Rayfan Maulana',
-                              style: TextStyle(
+                            Text(
+                              _namaUser ?? 'User',
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
@@ -186,6 +256,7 @@ class _FormSakitState extends State<FormSakit> {
               ),
             ),
             const SizedBox(height: 24),
+
             // Form Section
             Expanded(
               child: SingleChildScrollView(
@@ -215,7 +286,8 @@ class _FormSakitState extends State<FormSakit> {
                         ),
                       ),
                       const SizedBox(height: 28),
-                      // NSM Field
+
+                      // === NSM Field ===
                       Row(
                         children: [
                           Container(
@@ -243,31 +315,22 @@ class _FormSakitState extends State<FormSakit> {
                       ),
                       const SizedBox(height: 12),
                       TextField(
-                        controller: _nsmController, 
+                        controller: _nsmController,
+                        readOnly: true,
                         decoration: InputDecoration(
-                          hintText: 'Silahkan Isi NSM Anda',
-                          hintStyle: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[400],
-                          ),
+                          hintText: 'NSM otomatis terisi',
                           filled: true,
                           fillColor: const Color(0xFFF8F9FA),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide.none,
                           ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 16,
-                          ),
-                        ),
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.black87,
+                          contentPadding: const EdgeInsets.all(16),
                         ),
                       ),
                       const SizedBox(height: 24),
-                      // Tanggal Mulai Sakit Field
+
+                      // === Tanggal Mulai Sakit ===
                       Row(
                         children: [
                           Container(
@@ -294,35 +357,24 @@ class _FormSakitState extends State<FormSakit> {
                         ],
                       ),
                       const SizedBox(height: 12),
-                      
                       TextField(
                         controller: _startDateController,
                         readOnly: true,
                         onTap: () => _selectDate(context, _startDateController),
                         decoration: InputDecoration(
                           hintText: 'Pilih tanggal mulai sakit',
-                          hintStyle: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[400],
-                          ),
                           filled: true,
                           fillColor: const Color(0xFFF8F9FA),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide.none,
                           ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 16,
-                          ),
-                        ),
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.black87,
+                          contentPadding: const EdgeInsets.all(16),
                         ),
                       ),
                       const SizedBox(height: 24),
-                      // Tanggal Berakhir Sakit Field
+
+                      // === Tanggal Berakhir Sakit ===
                       Row(
                         children: [
                           Container(
@@ -355,28 +407,18 @@ class _FormSakitState extends State<FormSakit> {
                         onTap: () => _selectDate(context, _endDateController),
                         decoration: InputDecoration(
                           hintText: 'Pilih tanggal berakhir sakit',
-                          hintStyle: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[400],
-                          ),
                           filled: true,
                           fillColor: const Color(0xFFF8F9FA),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide.none,
                           ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 16,
-                          ),
-                        ),
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.black87,
+                          contentPadding: const EdgeInsets.all(16),
                         ),
                       ),
                       const SizedBox(height: 24),
-                      // Deskripsi/Alasan Sakit Field
+
+                      // === Deskripsi/Alasan Sakit ===
                       Row(
                         children: [
                           Container(
@@ -407,11 +449,7 @@ class _FormSakitState extends State<FormSakit> {
                         controller: _descriptionController,
                         maxLines: 5,
                         decoration: InputDecoration(
-                          hintText: 'Jelaskan kondisi kesahatan atau penyakit',
-                          hintStyle: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[400],
-                          ),
+                          hintText: 'Jelaskan kondisi kesehatan atau penyakit',
                           filled: true,
                           fillColor: const Color(0xFFF8F9FA),
                           border: OutlineInputBorder(
@@ -420,13 +458,10 @@ class _FormSakitState extends State<FormSakit> {
                           ),
                           contentPadding: const EdgeInsets.all(16),
                         ),
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.black87,
-                        ),
                       ),
                       const SizedBox(height: 32),
-                      // Buttons
+
+                      // === Tombol Batal & Submit ===
                       Row(
                         children: [
                           Expanded(
@@ -435,43 +470,38 @@ class _FormSakitState extends State<FormSakit> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFFEF5350),
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                elevation: 0,
                               ),
                               child: const Text(
                                 'Batal',
                                 style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600),
                               ),
                             ),
                           ),
-                          
-
                           const SizedBox(width: 12),
-
                           Expanded(
                             child: ElevatedButton(
                               onPressed: _handleSubmit,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF42A5F5),
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                elevation: 0,
                               ),
                               child: const Text(
                                 'Submit',
                                 style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600),
                               ),
                             ),
                           ),

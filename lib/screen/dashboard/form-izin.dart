@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // 🟢 [TAMBAHAN GPT]
+import 'package:absensi_pkl_urban/services/izin_sakit_service.dart'; // 🟢 [TAMBAHAN GPT]
 
 class FormIzin extends StatefulWidget {
   const FormIzin({Key? key}) : super(key: key);
@@ -11,8 +13,28 @@ class FormIzin extends StatefulWidget {
 class _FormIzinState extends State<FormIzin> {
   final TextEditingController _nsmController = TextEditingController();
   final TextEditingController _startDateController = TextEditingController();
-  
   final TextEditingController _descriptionController = TextEditingController();
+
+  final IzinSakitService service = IzinSakitService(); // 🟢 [TAMBAHAN GPT]
+
+  String namaUser = "User"; // 🟢 [TAMBAHAN GPT]
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData(); // 🟢 [TAMBAHAN GPT]
+  }
+
+  // 🟢 [TAMBAHAN GPT] Ambil nama user & userPkl dari SharedPreferences
+  Future<void> _loadUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      namaUser = prefs.getString('nama') ?? 'User';
+      _nsmController.text = prefs.getString('nsm') ?? ''; // 🟢 otomatis isi NSM
+    });
+  }
+
+
 
   Future<void> _selectDate(BuildContext context, TextEditingController controller) async {
     final DateTime? picked = await showDatePicker(
@@ -35,14 +57,14 @@ class _FormIzinState extends State<FormIzin> {
     );
     if (picked != null) {
       setState(() {
-        controller.text = DateFormat('dd/MM/yyyy').format(picked);
+        controller.text = DateFormat('yyyy-MM-dd').format(picked); // 🟢 format untuk API
       });
     }
   }
 
-  void _handleSubmit() {
-    if (_startDateController.text.isEmpty ||
-        _descriptionController.text.isEmpty) {
+  // 🟢 [TAMBAHAN GPT] Fungsi kirim data ke API
+  Future<void> _handleSubmit() async {
+    if (_startDateController.text.isEmpty || _descriptionController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Mohon lengkapi semua field'),
@@ -51,19 +73,41 @@ class _FormIzinState extends State<FormIzin> {
       );
       return;
     }
-    
-    Navigator.pushNamed(context, '/success');
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Form berhasil disubmit'),
-        backgroundColor: Colors.green,
-      ),
-    );
+    try {
+      final result = await service.simpanIzin(
+        tanggalIzin: _startDateController.text,
+        keterangan: _descriptionController.text,
+      );
+
+      if (result['statusCode'] == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['msg'] ?? 'Izin berhasil dikirim'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['msg'] ?? 'Gagal mengirim izin'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Terjadi kesalahan: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   void _handleCancel() {
-     Navigator.pop(context);
+    Navigator.pop(context);
     setState(() {
       _startDateController.clear();
       _descriptionController.clear();
@@ -109,33 +153,32 @@ class _FormIzinState extends State<FormIzin> {
                       children: [
                         Row(
                           children: [
-                               Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: const Icon(
                                 Icons.refresh,
                                 color: Colors.white,
                                 size: 20,
-                              ), 
+                              ),
                             ),
-                          
-
-
-    
-                           
                           ],
                         ),
+                        // 🟢 [TAMBAHAN GPT] nama user dinamis
                         Row(
                           children: [
-                            const Text(
-                              'Rayfan Maulana',
-                              style: TextStyle(
+                            Text(
+                              namaUser.length > 20
+                                  ? "${namaUser.split(' ').take(2).join(' ')}"
+                                  : namaUser,
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -182,6 +225,7 @@ class _FormIzinState extends State<FormIzin> {
               ),
             ),
             const SizedBox(height: 24),
+
             // Form Section
             Expanded(
               child: SingleChildScrollView(
@@ -211,6 +255,7 @@ class _FormIzinState extends State<FormIzin> {
                         ),
                       ),
                       const SizedBox(height: 28),
+
                       // NSM Field
                       Row(
                         children: [
@@ -236,36 +281,32 @@ class _FormIzinState extends State<FormIzin> {
                             ),
                           ),
                         ],
-                        
                       ),
-                     const SizedBox(height: 12),
+                      const SizedBox(height: 12),
                       TextField(
-                        controller: _nsmController,
-                       
-                        decoration: InputDecoration(
-                          hintText: 'Silahkan Isi NSM Anda',
-                          hintStyle: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[400],
-                          ),
-                          filled: true,
-                          fillColor: const Color(0xFFF8F9FA),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 16,
-                          ),
-                        ),
-                        style: const TextStyle(
+                      controller: _nsmController,
+                      readOnly: true, // 🟢 otomatis dari user login
+                      decoration: InputDecoration(
+                        hintText: 'NSM',
+                        hintStyle: TextStyle(
                           fontSize: 14,
-                          color: Colors.black87,
+                          color: Colors.grey[400],
+                        ),
+                        filled: true,
+                        fillColor: const Color(0xFFF8F9FA),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 16,
                         ),
                       ),
+                    ),
                       const SizedBox(height: 24),
-                      // Tanggal Mulai izin Field
+
+                      // Tanggal Izin
                       Row(
                         children: [
                           Container(
@@ -313,15 +354,10 @@ class _FormIzinState extends State<FormIzin> {
                             vertical: 16,
                           ),
                         ),
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.black87,
-                        ),
                       ),
                       const SizedBox(height: 24),
-                      // Tanggal Berakhir Sakit Field
-                     
-                      // Deskripsi/Alasan Sakit Field
+
+                      // Deskripsi
                       Row(
                         children: [
                           Container(
@@ -348,12 +384,11 @@ class _FormIzinState extends State<FormIzin> {
                         ],
                       ),
                       const SizedBox(height: 12),
-
                       TextField(
                         controller: _descriptionController,
                         maxLines: 5,
                         decoration: InputDecoration(
-                          hintText: 'Jelaskan kondisi kesahatan atau penyakit',
+                          hintText: 'Jelaskan alasan izin anda',
                           hintStyle: TextStyle(
                             fontSize: 14,
                             color: Colors.grey[400],
@@ -366,14 +401,10 @@ class _FormIzinState extends State<FormIzin> {
                           ),
                           contentPadding: const EdgeInsets.all(16),
                         ),
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.black87,
-                        ),
                       ),
                       const SizedBox(height: 32),
-                      // Buttons
 
+                      // Tombol
                       Row(
                         children: [
                           Expanded(
@@ -395,11 +426,9 @@ class _FormIzinState extends State<FormIzin> {
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
+                            ),
                           ),
-                          ),
-
                           const SizedBox(width: 12),
-
                           Expanded(
                             child: ElevatedButton(
                               onPressed: _handleSubmit,

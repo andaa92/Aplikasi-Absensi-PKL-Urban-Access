@@ -1,62 +1,45 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart'; // 🟢 [TAMBAHAN GPT]
 import '../models/dashboard_model.dart';
 
 class ApiService {
-  final String baseUrl = "https://hr.urbanaccess.net/api";
+  final String baseUrl = "https://hr.urbanaccess.net/api"; // 🔁 ubah ke https (sesuai API kamu)
 
-  Future<DashboardData> fetchDashboardData(String userPkl) async {
+  Future<DashboardData> fetchDashboardData(String userEmail) async {
     try {
-      // 🔧 Coba pakai parameter sesuai kebutuhan server kamu
-      final url = Uri.parse("$baseUrl/kehadiran?userPkl=$userPkl");
-      // Jika masih error, ganti jadi:
-      // final url = Uri.parse("$baseUrl/kehadiran?email=$userPkl");
+      // 🟢 [TAMBAHAN GPT] ambil token dari SharedPreferences (hasil login)
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
 
-      final headers = {
-        'Accept': 'application/json',
-      };
+      // API endpoint yang kamu punya
+      final kehadiranUrl = Uri.parse("$baseUrl/kehadiran?userPkl=$userEmail");
 
-      final response = await http.get(url, headers: headers);
+      print("🔗 Fetching data dari: $kehadiranUrl");
+      print("🔑 Token: ${token.isNotEmpty ? 'Ditemukan' : 'Tidak ditemukan'}");
 
-      print("STATUS CODE: ${response.statusCode}");
-      print("BODY: ${response.body}");
+      // 🟢 [TAMBAHAN GPT] tambahkan header Authorization jika Sanctum digunakan
+      final response = await http.get(
+        kehadiranUrl,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          if (token.isNotEmpty) 'Authorization': 'Bearer $token', // 🟢
+        },
+      );
+
+      print("📥 RESPONSE STATUS: ${response.statusCode}");
+      print("📦 RESPONSE BODY: ${response.body}");
 
       if (response.statusCode != 200) {
-        throw Exception("Gagal memuat data: ${response.statusCode}");
+        throw Exception("Gagal memuat data kehadiran (${response.statusCode})");
       }
 
       final jsonData = jsonDecode(response.body);
+      final List<dynamic> kehadiranList = jsonData['data'] ?? [];
 
-      if (jsonData['data'] == null || jsonData['data'] is! List) {
-        throw Exception("Format data tidak sesuai");
-      }
-
-      List<dynamic> kehadiranList = jsonData['data'];
-      List<dynamic> dataUser = kehadiranList;
-
-      int tepatWaktu = dataUser
-          .where((d) =>
-              (d['status']?.toString().toLowerCase() ?? '') ==
-              'tepat waktu')
-          .length;
-
-      int terlambat = dataUser
-          .where((d) =>
-              (d['status']?.toString().toLowerCase() ?? '') ==
-              'terlambat')
-          .length;
-
-      int izin = dataUser
-          .where((d) =>
-              (d['status']?.toString().toLowerCase() ?? '') == 'izin')
-          .length;
-
-      int sakit = dataUser
-          .where((d) =>
-              (d['status']?.toString().toLowerCase() ?? '') == 'sakit')
-          .length;
-
-      List<HistoryAbsen> historyList = dataUser.map((item) {
+      // Konversi ke model HistoryAbsen
+      final List<HistoryAbsen> historyList = kehadiranList.map((item) {
         return HistoryAbsen(
           tanggal: item['date'] ?? '-',
           keterangan: item['status'] ?? '-',
@@ -66,13 +49,15 @@ class ApiService {
         );
       }).toList();
 
-      historyList.sort((a, b) => b.tanggal.compareTo(a.tanggal));
+      // Hitung jumlah hadir & terlambat (bisa disesuaikan)
+      int hadir = historyList.where((h) => h.status == "Tepat Waktu").length;
+      int terlambat = historyList.where((h) => h.status == "Terlambat").length;
 
       return DashboardData(
-        hadir: tepatWaktu,
+        hadir: hadir,
         terlambat: terlambat,
-        izin: izin,
-        sakit: sakit,
+        izin: 0, // nanti bisa diambil dari API izin
+        sakit: 0, // nanti bisa diambil dari API sakit
         history: historyList,
       );
     } catch (e) {

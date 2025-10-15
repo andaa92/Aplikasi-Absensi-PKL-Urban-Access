@@ -11,6 +11,8 @@ import 'package:absensi_pkl_urban/screen/dashboard/absen-finger.dart';
 import 'package:absensi_pkl_urban/services/api_service.dart';
 import 'package:absensi_pkl_urban/models/dashboard_model.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({Key? key}) : super(key: key);
@@ -19,39 +21,70 @@ class DashboardPage extends StatefulWidget {
   State<DashboardPage> createState() => _DashboardPageState();
 }
 
+Future<String?> _getUserName() async {
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getString('nama') ?? 'User';
+}
+
+
+
+
 class _DashboardPageState extends State<DashboardPage> {
   final ApiService apiService = ApiService();
-  late Future<DashboardData> futureDashboard;
+  Future<DashboardData>? futureDashboard;
 
   @override
   void initState() {
     super.initState();
-    // Ganti email/userPkl ini dengan akun login kamu nanti
-    futureDashboard =
-        apiService.fetchDashboardData("muhammadnadiprahmatilah@gmail.com");
+    _loadUserAndFetchData(); // 🟢 [TAMBAHAN GPT]
+  }
+
+  // 🟢 [TAMBAHAN GPT] ambil email dari local storage (SharedPreferences)
+  Future<void> _loadUserAndFetchData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? userEmail = prefs.getString('email');
+
+    if (userEmail == null || userEmail.isEmpty) {
+      print("⚠️ Email user tidak ditemukan, arahkan ke login");
+      return;
+    }
+
+    print("📩 Mengambil data dashboard untuk $userEmail");
+    setState(() {
+      futureDashboard = apiService.fetchDashboardData(userEmail);
+    });
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      body: FutureBuilder<DashboardData>(
-        future: futureDashboard,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text("Gagal memuat data: ${snapshot.error}"));
-          } else if (!snapshot.hasData) {
-            return const Center(child: Text("Tidak ada data"));
-          }
+Widget build(BuildContext context) {
+  return Scaffold(
+    backgroundColor: const Color(0xFFF5F5F5),
 
-          final data = snapshot.data!;
-          return _buildDashboardContent(context, data);
-        },
-      ),
-    );
-  }
+    // 🟢 Tambahan keamanan untuk handle futureDashboard yang belum siap
+    body: (futureDashboard == null)
+        ? const Center(
+            child: CircularProgressIndicator(), // loading awal
+          )
+        : FutureBuilder<DashboardData>(
+            future: futureDashboard,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              } else if (snapshot.hasError) {
+                return Center(
+                    child: Text(
+                        "Gagal memuat data: ${snapshot.error.toString()}"));
+              } else if (!snapshot.hasData) {
+                return const Center(child: Text("Tidak ada data"));
+              }
+
+              final data = snapshot.data!;
+              return _buildDashboardContent(context, data);
+            },
+          ),
+  );
+}
+
 
   Widget _buildDashboardContent(BuildContext context, DashboardData data) {
     // Ambil 3 data absen terbaru
@@ -102,44 +135,52 @@ class _DashboardPageState extends State<DashboardPage> {
                       ),
                     ],
                   ),
+
+                  // 🟢
                   Row(
-                    children: [
-                      const Text(
-                        'Rayfan Maulana',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  const MainPage(initialIndex: 2),
-                            ),
-                          );
-                        },
-                        child: Container(
-                          width: 35,
-                          height: 35,
-                          decoration: const BoxDecoration(
+                     children: [
+                  FutureBuilder<String?>(
+                      future: _getUserName(),
+                      builder: (context, snapshot) {
+                        String namaUser = snapshot.data ?? 'User';
+
+                        // 🟢 Tambahan: ambil hanya dua kata pertama
+                        List<String> parts = namaUser.split(' ');
+                        if (parts.length > 2) {
+                          namaUser = '${parts[0]} ${parts[1]}';
+                        }
+
+                        return Text(
+                          namaUser,
+                          style: const TextStyle(
                             color: Colors.white,
-                            shape: BoxShape.circle,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            overflow: TextOverflow.ellipsis,
+                            // 🟢 biar kalau masih panjang, ada titik-titik (...)
                           ),
-                          child: const Icon(
-                            Icons.person,
-                            color: Color(0xFF29B6F6),
-                            size: 20,
-                          ),
+                        );
+                      },
+                    ),
+
+                  const SizedBox(width: 10),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const MainPage(initialIndex: 2),
                         ),
-                      ),
-                    ],
+                      );
+                    },
+                    child: const Icon(
+                      Icons.account_circle,
+                      color: Colors.white,
+                    ),
                   ),
                 ],
+              ),     
+           ],
               ),
               const SizedBox(height: 20),
               const Align(
