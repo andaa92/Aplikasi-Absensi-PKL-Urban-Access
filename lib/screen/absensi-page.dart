@@ -1,322 +1,491 @@
 import 'package:flutter/material.dart';
+import 'package:absensi_pkl_urban/screen/main-page.dart';
+import 'package:absensi_pkl_urban/services/api_absensi_services.dart';
+import 'package:absensi_pkl_urban/models/absensipage.dart';
 
-void main() {
-  runApp(const AbsensiPageApp());
-}
-
-class AbsensiPageApp extends StatelessWidget {
-  const AbsensiPageApp({Key? key}) : super(key: key);
+class AbsensiPage extends StatefulWidget {
+  const AbsensiPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return const MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: AbsensiPage(),
+  State<AbsensiPage> createState() => _AbsensiPageState();
+}
+
+class _AbsensiPageState extends State<AbsensiPage> {
+  final AbsensiService _service = AbsensiService();
+  List<AbsensiModel> _absensiList = [];
+  List<AbsensiModel> _filteredAbsensiList = [];
+  
+  bool _isLoading = true;
+  String? _selectedStatusFilter;
+  String userPkl = 'sementara';
+
+  DateTime? _startDate;
+  DateTime? _endDate;
+
+  Future<void> _refreshData() async {
+  setState(() {
+    _isLoading = true;
+  });
+
+  try {
+    final data = await AbsensiService().getAbsensiList(userPkl); // ganti sesuai method kamu
+    setState(() {
+      _absensiList = data;
+      _isLoading = false;
+    });
+  } catch (e) {
+    setState(() {
+      _isLoading = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Gagal memuat ulang data: $e')),
     );
   }
 }
 
-class AbsensiPage extends StatelessWidget {
-  const AbsensiPage({Key? key}) : super(key: key);
+
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAbsensiData();
+  }
+
+  Future<void> _loadAbsensiData() async {
+    setState(() =>_isLoading = true);
+    try {
+      final data = await _service.getAbsensiList('destia@gmail.com');
+      setState(() {
+        _absensiList = data;
+        _filteredAbsensiList = data;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+       ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal memuat data: $e')),
+      );
+    }
+  }
+
+  void _applyFilters() {
+    setState(() {
+      _filteredAbsensiList = _absensiList.where((item) {
+        bool matchesStatus = true;
+        bool matchesDate = true;
+
+        if (_selectedStatusFilter != null && _selectedStatusFilter!.isNotEmpty) {
+          matchesStatus = item.status.toLowerCase() == _selectedStatusFilter!.toLowerCase();
+        }
+
+        if (_startDate != null && _endDate != null && item.date.isNotEmpty) {
+          try {
+            final itemDate = DateTime.parse(item.date);
+            matchesDate = itemDate.isAfter(_startDate!.subtract(const Duration(days: 1))) &&
+                          itemDate.isBefore(_endDate!.add(const Duration(days: 1)));
+          } catch (_) {
+            matchesDate = false;
+          }
+        }
+
+        return matchesStatus && matchesDate;
+      }).toList();
+    });
+  }
+
+
+  Future<void> _selectDateRange(BuildContext context) async {
+    final start = await showDatePicker(
+      context: context,
+      initialDate: _startDate ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
+    if (start == null) return;
+
+    final end = await showDatePicker(
+      context: context,
+      initialDate: _endDate ?? start,
+      firstDate: start,
+      lastDate: DateTime(2100),
+    );
+
+    if (end != null) {
+      setState(() {
+        _startDate = start;
+        _endDate = end;
+      });
+      _applyFilters();
+    }
+  }
+
+  // === UI STATUS HELPER ===
+  IconData getStatusIcon(String status) => AbsensiModel.mapStatusToIcon(status);
+  Color getStatusColor(String status) => AbsensiModel.mapStatusToColor(status);
+  Color getStatusBgColor(String status) => AbsensiModel.mapStatusBgColor(status);
 
   @override
   Widget build(BuildContext context) {
+    final listToShow = _filteredAbsensiList;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: Column(
         children: [
-          // Custom Header
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient
-              (colors: [ Color(0xFF4FC3F7), Color(0xFF29B6F6) ] ),
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(30),
-                bottomRight: Radius.circular(30),
-              ),
-            ),
-            child: SafeArea(
-              bottom: false,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Top bar with icons and profile
-                  Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 35, vertical: 35),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: const [
-                            Icon(Icons.arrow_back,
-                                color: Colors.white, size: 24),
-                            SizedBox(width: 12),
-                            Icon(Icons.refresh, color: Colors.white, size: 24),
-                          ],
-                        ),
-                        Row(
-                          children: [
-                            const Text(
-                              'Rayfan Maulana',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Container(
-                              width: 32,
-                              height: 50,
-                              decoration: const BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.person,
-                                color: Color(0xFF2196F3),
-                                size: 20,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Title
-                  Padding(
-  padding: const EdgeInsets.only(left: 20, top: 0, bottom: 24),
-  child: Transform.translate(
-    offset: const Offset(0, -25), // nilai negatif = geser ke atas
-    child: const Text(
-      'Riwayat Absensi',
-      style: TextStyle(
-        color: Colors.white,
-        fontSize: 32,
-        fontWeight: FontWeight.bold,
-      ),
-    ),
-  ),
-),
-
-                ],
-              ),
-            ),
-          ),
-          // Filter Button
-          Padding(
-  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-  child: Row(
-    mainAxisAlignment: MainAxisAlignment.end,
-    children: [
-      GestureDetector(
-        onTap: () {
-          // Popup tampil
-          showDialog(
-            context: context,
-            builder: (BuildContext context) {
-              return AlertDialog(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                title: const Text(
-                  "Filter Absensi",
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text("Pilih Periode Waktu"),
-                    const SizedBox(height: 10),
-                   Row(
-  children: [
-    Expanded(
-      child: GestureDetector(
-        onTap: () async {
-          final picked = await showDatePicker(
-            context: context,
-            initialDate: DateTime.now(),
-            firstDate: DateTime(2020),
-            lastDate: DateTime(2030),
-          );
-          if (picked != null) {
-            // tampilkan hasil di console (sementara)
-            print("Dari Tanggal: $picked");
-          }
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: const Text("Dari Tanggal"),
-        ),
-      ),
-    ),
-    const SizedBox(width: 10),
-    Expanded(
-      child: GestureDetector(
-        onTap: () async {
-          final picked = await showDatePicker(
-            context: context,
-            initialDate: DateTime.now(),
-            firstDate: DateTime(2020),
-            lastDate: DateTime(2030),
-          );
-          if (picked != null) {
-            print("Sampai Tanggal: $picked");
-          }
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: const Text("Sampai Tanggal"),
-        ),
-      ),
-    ),
-  ],
-),
-
-                    const SizedBox(height: 20),
-                    const Text("Filter Berdasarkan:"),
-                    const SizedBox(height: 10),
-                    DropdownButtonFormField<String>(
-                      decoration: InputDecoration(
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                      ),
-                      items: const [
-                        DropdownMenuItem(value: "Terlambat", child: Text("Terlambat")),
-                        DropdownMenuItem(value: "Hadir", child: Text("Hadir")),
-                        DropdownMenuItem(value: "Izin", child: Text("Izin")),
-                        DropdownMenuItem(value: "Sakit", child: Text("Sakit")),
-                      ],
-                      onChanged: (value) {},
-                    ),
-                  ],
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text("BATAL"),
-                  ),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    child: const Text("TERAPKAN"),
-                  ),
-                ],
-              );
-            },
-          );
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(25),
-            border: Border.all(color: Colors.grey.shade300, width: 1.5),
-          ),
-          child: const Text(
-            'FILTER',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-              letterSpacing: 1,
-            ),
-          ),
-        ),
-      ),
-    ],
-  ),
-),
-          // Divider line
-     // Divider line
-Container(
-  height: 1,
-  margin: const EdgeInsets.symmetric(vertical: 8),
-  decoration: BoxDecoration(
-    color: Colors.grey.shade300,
-  ),
-),
-
-
-
-          // List Content
+          _buildHeader(context),
+          _buildFilterButton(context),
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _absensiList.isEmpty
+                    ? const Center(child: Text('Tidak ada data absensi'))
+                    : ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        itemCount: listToShow.length + 1,
+                        itemBuilder: (context, index) {
+                          if (index < listToShow.length) {
+                            final item = listToShow[index];
+                            return _buildAbsensiItem(
+                              hari: item.hari,
+                              tanggal: item.tanggal,
+                              checkIn: item.checkIn,
+                              checkOut: item.checkOut,
+                              status: item.status,
+                              statusIcon: getStatusIcon(item.status),
+                              statusColor: getStatusColor(item.status),
+                              statusBgColor: getStatusBgColor(item.status),
+                            );
+                          } else {
+                            return Column(
+                              children: const [
+                                SizedBox(height: 20),
+                                _KeteranganSection(),
+                                SizedBox(height: 80),
+                              ],
+                            );
+                          }
+                        },
+                      ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // === HEADER ===
+  Widget _buildHeader(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF4FC3F7), Color(0xFF29B6F6)],
+        ),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(30),
+          bottomRight: Radius.circular(30),
+        ),
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.refresh, color: Colors.white, size: 24),
+                    onPressed: _refreshData,
+                    tooltip: 'Muat Ulang',
+                  )
+                  ,
+                  Row(
+                    children: [
+                      const Text(
+                        'Rayfan Maulana',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const MainPage(initialIndex: 2),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.person, color: Color(0xFF2196F3)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Riwayat Absensi',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 30,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+   
+  // === FILTER BUTTON ===
+  Widget _buildFilterButton(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          GestureDetector(
+            onTap: () {
+              _showFilterDialog(context);
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(25),
+                border: Border.all(color: Colors.grey.shade300, width: 1.5),
+              ),
+              child: const Text(
+                'FILTER',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                  letterSpacing: 1,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showFilterDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      String? tempSelectedStatus = _selectedStatusFilter;
+      DateTime? tempStartDate = _startDate;
+      DateTime? tempEndDate = _endDate;
+
+      final validStatus = ['tepat waktu', 'izin', 'sakit', 'terlambat'];
+
+      if (tempSelectedStatus != null &&
+          !validStatus.contains(tempSelectedStatus.toLowerCase())) {
+        tempSelectedStatus = null; // reset kalau value gak valid
+      }
+
+      return StatefulBuilder(
+        builder: (context, setStateDialog) {
+          Future<void> pickStartDate() async {
+            final picked = await showDatePicker(
+              context: context,
+              initialDate: tempStartDate ?? DateTime.now(),
+              firstDate: DateTime(2020),
+              lastDate: DateTime(2100),
+            );
+            if (picked != null) {
+              setStateDialog(() => tempStartDate = picked);
+            }
+          }
+
+          Future<void> pickEndDate() async {
+            final picked = await showDatePicker(
+              context: context,
+              initialDate: tempEndDate ?? DateTime.now(),
+              firstDate: DateTime(2020),
+              lastDate: DateTime(2100),
+            );
+            if (picked != null) {
+              setStateDialog(() => tempEndDate = picked);
+            }
+          }
+
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Text(
+              'Filter Absensi',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Dropdown Status
+                  DropdownButtonFormField<String>(
+                    decoration: const InputDecoration(
+                      labelText: 'Pilih Status',
+                      border: OutlineInputBorder(),
+                    ),
+                    value: validStatus.contains(tempSelectedStatus?.toLowerCase())
+                        ? tempSelectedStatus
+                        : null,
+                    items: const [
+                      DropdownMenuItem(value: 'tepat waktu', child: Text('Tepat Waktu')),
+                      DropdownMenuItem(value: 'izin', child: Text('Izin')),
+                      DropdownMenuItem(value: 'sakit', child: Text('Sakit')),
+                      DropdownMenuItem(value: 'terlambat', child: Text('Terlambat')),
+                    ],
+                    onChanged: (value) {
+                      setStateDialog(() {
+                        tempSelectedStatus = value;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Tombol pilih tanggal awal
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: pickStartDate,
+                          child: Text(
+                            tempStartDate == null
+                                ? 'Pilih Tanggal Awal'
+                                : 'Dari: ${tempStartDate!.toLocal().toString().split(' ')[0]}',
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  // Tombol pilih tanggal akhir
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: pickEndDate,
+                          child: Text(
+                            tempEndDate == null
+                                ? 'Pilih Tanggal Akhir'
+                                : 'Sampai: ${tempEndDate!.toLocal().toString().split(' ')[0]}',
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("BATAL"),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    _selectedStatusFilter = tempSelectedStatus;
+                    _startDate = tempStartDate;
+                    _endDate = tempEndDate;
+                  });
+                  Navigator.pop(context);
+                  _applyFilters(); // jalankan filter setelah diterapkan
+                },
+                child: const Text("TERAPKAN"),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+}
+
+
+  // === ABSENSI ITEM ===
+  Widget _buildAbsensiItem({
+    required String hari,
+    required String tanggal,
+    required String checkIn,
+    required String checkOut,
+    required String status,
+    required IconData statusIcon,
+    required Color statusColor,
+    required Color statusBgColor,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.15),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Kiri: Hari, tanggal, dan jam
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                hari,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+              ),
+              const SizedBox(height: 4),
+              Text(tanggal, style: const TextStyle(fontSize: 13, color: Colors.black54)),
+              const SizedBox(height: 8),
+              Text('In : ${checkIn.isNotEmpty ? checkIn : "-"}',
+                  style: const TextStyle(fontSize: 12, color: Colors.black54)),
+              Text('Out : ${checkOut.isNotEmpty ? checkOut : "-"}',
+                  style: const TextStyle(fontSize: 12, color: Colors.black54)),
+            ],
+          ),
+          // Kanan: status badge
+          Container(
+            decoration: BoxDecoration(
+              color: statusBgColor,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            child: Row(
               children: [
-                _buildAbsensiItem(
-                  hari: 'Kamis',
-                  tanggal: '2, Oktober 2025',
-                  statusIcon: Icons.close,
-                  statusColor: const Color(0xFFFF5252),
-                  statusBgColor: const Color(0xFFFFCDD2),
-                  backgroundColor: Colors.white,
+                Icon(statusIcon, color: statusColor, size: 16),
+                const SizedBox(width: 6),
+                Text(
+                  _capitalizeStatus(status),
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: statusColor,
+                  ),
                 ),
-                _buildAbsensiItem(
-                  hari: 'Jumat',
-                  tanggal: '3, Oktober 2025',
-                  statusIcon: Icons.edit,
-                  statusColor: const Color(0xFFFFC107),
-                  statusBgColor: const Color(0xFFFFF59D),
-                  backgroundColor: const Color.fromARGB(255, 255, 255, 255),
-                ),
-                _buildAbsensiItem(
-                  hari: 'Senin',
-                  tanggal: '6, Oktober 2025',
-                  statusIcon: Icons.check_circle,
-                  statusColor: const Color(0xFF4CAF50),
-                  statusBgColor: const Color(0xFFC8E6C9),
-                  backgroundColor: Colors.white,
-                ),
-                _buildAbsensiItem(
-                  hari: 'Selasa',
-                  tanggal: '7, Oktober 2025',
-                  statusIcon: Icons.check_circle,
-                  statusColor: const Color(0xFF4CAF50),
-                  statusBgColor: const Color(0xFFC8E6C9),
-                  backgroundColor: Colors.white,
-                ),
-                _buildAbsensiItem(
-                  hari: 'Rabu',
-                  tanggal: '8, Oktober 2025',
-                  statusIcon: Icons.check_circle,
-                  statusColor: const Color(0xFF4CAF50),
-                  statusBgColor: const Color(0xFFC8E6C9),
-                  backgroundColor: Colors.white,
-                ),
-                _buildAbsensiItem(
-                  hari: 'Kamis',
-                  tanggal: '9, Oktober 2025',
-                  statusIcon: Icons.check_circle,
-                  statusColor: const Color(0xFF4CAF50),
-                  statusBgColor: const Color(0xFFC8E6C9),
-                  backgroundColor: Colors.white,
-                ),
-                _buildAbsensiItem(
-                  hari: 'Jumat',
-                  tanggal: '10, Oktober 2025',
-                  statusIcon: Icons.check_circle,
-                  statusColor: const Color(0xFF4CAF50),
-                  statusBgColor: const Color(0xFFC8E6C9),
-                  backgroundColor: Colors.white,
-                ),
-                const SizedBox(height: 16),
-                _buildKeteranganSection(),
-                const SizedBox(height: 80),
               ],
             ),
           ),
@@ -325,92 +494,23 @@ Container(
     );
   }
 
-  Widget _buildAbsensiItem({
-  required String hari,
-  required String tanggal,
-  required IconData statusIcon,
-  required Color statusColor,
-  required Color statusBgColor,
-  required Color backgroundColor,
-}) {
-  return Container(
-     margin: const EdgeInsets.symmetric(vertical: 2),
-    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-    decoration: BoxDecoration(
-      color: backgroundColor,
-      border: Border(
-        bottom: BorderSide(color: Colors.grey.shade400, width: 0.6),
-      ),
-    ),
-     child: Row(
-      children: [
-        // Kolom kiri: hari
-        Expanded(
-          flex: 3,
-          child: Text(
-            hari,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: Colors.black87,
-            ),
-          ),
-        ),
-
-        // Spacer buat jarak
-        const Spacer(),
-
-       // Kolom tengah: tanggal
-        Expanded(
-          flex: 4,
-          child: Center(
-            child: Text(
-              tanggal,
-              style: const TextStyle(
-                fontSize: 15,
-                color: Colors.black54,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ),
-
-        // Spacer lagi biar posisi tengah tetap pas
-        const Spacer(),
-
-         // Kolom kanan: ikon status
-        Expanded(
-          flex: 2,
-          child: Align(
-            alignment: Alignment.centerRight,
-            child: Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: statusBgColor,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                statusIcon,
-                size: 18,
-                color: statusColor,
-              ),
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
+  String _capitalizeStatus(String text) {
+    return text.isEmpty ? '' : '${text[0].toUpperCase()}${text.substring(1).toLowerCase()}';
+  }
 }
 
+// === BAGIAN KETERANGAN ===
+class _KeteranganSection extends StatelessWidget {
+  const _KeteranganSection();
 
-
-  static Widget _buildKeteranganSection() {
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
+        children: const [
+          Text(
             'KETERANGAN',
             style: TextStyle(
               fontSize: 13,
@@ -419,46 +519,46 @@ Container(
               letterSpacing: 0.5,
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           Row(
             children: [
               Expanded(
-                child: _buildKeteranganItem(
+                child: _KeteranganItem(
                   icon: Icons.sick,
                   text: 'SAKIT',
-                  iconColor: const Color(0xFFFF9800),
-                  iconBgColor: const Color(0xFFFFE0B2),
+                  iconColor: Color(0xFFFF9800),
+                  iconBgColor: Color(0xFFFFE0B2),
                 ),
               ),
-              const SizedBox(width: 16),
+              SizedBox(width: 16),
               Expanded(
-                child: _buildKeteranganItem(
+                child: _KeteranganItem(
                   icon: Icons.calendar_today,
                   text: 'IZIN',
-                  iconColor: const Color(0xFFFFC107),
-                  iconBgColor: const Color(0xFFFFF9C4),
+                  iconColor: Color(0xFFFFC107),
+                  iconBgColor: Color(0xFFFFF9C4),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           Row(
             children: [
               Expanded(
-                child: _buildKeteranganItem(
+                child: _KeteranganItem(
                   icon: Icons.check_circle,
                   text: 'TEPAT WAKTU',
-                  iconColor: const Color(0xFF4CAF50),
-                  iconBgColor: const Color(0xFFC8E6C9),
+                  iconColor: Color(0xFF4CAF50),
+                  iconBgColor: Color(0xFFC8E6C9),
                 ),
               ),
-              const SizedBox(width: 16),
+              SizedBox(width: 16),
               Expanded(
-                child: _buildKeteranganItem(
+                child: _KeteranganItem(
                   icon: Icons.close,
                   text: 'TERLAMBAT',
-                  iconColor: const Color(0xFFFF5252),
-                  iconBgColor: const Color(0xFFFFCDD2),
+                  iconColor: Color(0xFFFF5252),
+                  iconBgColor: Color(0xFFFFCDD2),
                 ),
               ),
             ],
@@ -467,27 +567,30 @@ Container(
       ),
     );
   }
+}
 
-  static Widget _buildKeteranganItem({
-    required IconData icon,
-    required String text,
-    required Color iconColor,
-    required Color iconBgColor,
-  }) {
+class _KeteranganItem extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  final Color iconColor;
+  final Color iconBgColor;
+
+  const _KeteranganItem({
+    required this.icon,
+    required this.text,
+    required this.iconColor,
+    required this.iconBgColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Row(
       children: [
         Container(
           width: 32,
           height: 32,
-          decoration: BoxDecoration(
-            color: iconBgColor,
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            icon,
-            color: iconColor,
-            size: 18,
-          ),
+          decoration: BoxDecoration(color: iconBgColor, shape: BoxShape.circle),
+          child: Icon(icon, color: iconColor, size: 18),
         ),
         const SizedBox(width: 8),
         const Text(
@@ -512,6 +615,4 @@ Container(
       ],
     );
   }
-
-  
 }
