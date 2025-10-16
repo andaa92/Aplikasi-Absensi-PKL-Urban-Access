@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:absensi_pkl_urban/screen/absensi-page.dart';
 import 'package:absensi_pkl_urban/screen/profile-page.dart';
 import 'package:absensi_pkl_urban/navigation/navigation-item.dart';
-import 'package:absensi_pkl_urban/screen/dashboard-page.dart';
-import 'package:absensi_pkl_urban/screen/dashboard/form-izin.dart';
 import 'package:absensi_pkl_urban/screen/dashboard/dashboard-page.dart';
+import 'package:absensi_pkl_urban/screen/dashboard/form-izin.dart';
 import 'package:absensi_pkl_urban/screen/dashboard/form-sakit.dart';
 
 
@@ -19,11 +18,17 @@ import 'package:absensi_pkl_urban/screen/dashboard/form-sakit.dart';
 class _MainPageState extends State<MainPage> {
   int _currentIndex = 1; 
 
-  final List<Widget> _pages = const [
+  final List<Widget> _pages = [
     AbsensiPage(),
-    ProfilePage(),
+    DashboardPage(),
     ProfilePage(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+  }
 
   @override
   Widget build(BuildContext context) {

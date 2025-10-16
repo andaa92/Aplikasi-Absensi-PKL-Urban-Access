@@ -1,52 +1,38 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android") // gunakan versi lengkap plugin Kotlin
-    // Flutter Gradle Plugin harus di-load terakhir
-    id("dev.flutter.flutter-gradle-plugin")
+    id("dev.flutter.flutter-gradle-plugin") // Flutter Gradle Plugin harus terakhir
 }
 
 android {
-    namespace = "com.example.absensi_pkl_urban"
+    namespace = "com.urbanaccess.absensipkl"
     compileSdk = 35
     ndkVersion = "27.0.12077973"
 
     defaultConfig {
-        applicationId = "com.example.absensi_pkl_urban"
+        applicationId = "com.urbanaccess.absensipkl"
         minSdk = 21
-        targetSdk = 35
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
     }
-}
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
 
     kotlinOptions {
-
         jvmTarget = JavaVersion.VERSION_11.toString()
     }
 
-    defaultConfig {
-    applicationId = "com.urbanaccess.absensipkl"
-    minSdk = flutter.minSdkVersion
-    targetSdk = 34
-    versionCode = 1
-    versionName = "1.0"
-}
-
-
-   
-
     buildTypes {
         getByName("release") {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
+            // TODO: tambahkan signingConfig release jika sudah ada key
             signingConfig = signingConfigs.getByName("debug")
         }
     }
-
+}
 
 flutter {
     source = "../.."

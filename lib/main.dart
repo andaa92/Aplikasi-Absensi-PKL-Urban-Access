@@ -8,6 +8,8 @@ import 'package:absensi_pkl_urban/screen/dashboard/absen-face.dart';
 import 'package:absensi_pkl_urban/screen/dashboard/absen-finger.dart';
 import 'package:absensi_pkl_urban/screen/dashboard/form-izin.dart';
 import 'package:absensi_pkl_urban/screen/dashboard/form-sakit.dart';
+import 'package:absensi_pkl_urban/screen/dashboard/succes-submit-page.dart';
+
 
 import 'package:intl/date_symbol_data_local.dart';
 
@@ -48,6 +50,7 @@ class MyApp extends StatelessWidget {
         '/form-sakit': (context) => const FormSakit(),
         '/face': (context) => const AbsenFace(),
         '/finger': (context) => const AbsenFinger(),
+        '/success-submit': (context) => const SuccessSubmitPage(),
 
       },
     );
