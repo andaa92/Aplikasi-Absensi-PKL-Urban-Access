@@ -195,6 +195,7 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+
   flutter_web_plugins:
     dependency: transitive
     description: flutter
@@ -216,6 +217,7 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.10.1"
+
   http:
     dependency: "direct main"
     description:
@@ -304,6 +306,7 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.20.2"
+
   leak_tracker:
     dependency: transitive
     description:
@@ -620,7 +623,8 @@ packages:
       sha256: fb31f383e2ee25fbbfe06b40fe21e1e458d14080e3c67e7ba0acfde4df4e0bbd
       url: "https://pub.dev"
     source: hosted
-    version: "0.7.4"
+    version: "0.7.6"
+
   typed_data:
     dependency: transitive
     description:
@@ -653,6 +657,7 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.1"
+
   win32:
     dependency: transitive
     description:
@@ -677,6 +682,7 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.0"
+
 sdks:
   dart: ">=3.7.0 <4.0.0"
   flutter: ">=3.29.0"
