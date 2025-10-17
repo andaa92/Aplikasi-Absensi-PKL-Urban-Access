@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:absensi_pkl_urban/models/profile_model.dart';
-import 'package:absensi_pkl_urban/models/kehadiran_model.dart';
-import 'package:absensi_pkl_urban/services/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:absensi_pkl_urban/screen/main-page.dart';
-
- // Pastikan ini mengarah ke file MainPage kamu
+import 'package:absensi_pkl_urban/models/profile_model.dart';
+import 'package:absensi_pkl_urban/models/dashboard_model.dart';
+import 'package:absensi_pkl_urban/services/api_service.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({Key? key}) : super(key: key);
@@ -15,13 +12,12 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  int _selectedTab = 0;
   final ApiService apiService = ApiService();
-
   Future<ProfileModel>? futureProfile;
-  Future<List<KehadiranModel>>? futureKehadiran;
+  Future<DashboardData>? futureDashboard;
   String? userEmail;
   bool isLoading = true;
+  int _selectedTab = 0;
 
   @override
   void initState() {
@@ -37,13 +33,11 @@ class _ProfilePageState extends State<ProfilePage> {
       setState(() {
         userEmail = savedEmail;
         futureProfile = apiService.fetchProfile(userEmail!);
-        futureKehadiran = apiService.fetchKehadiran(userEmail!);
+        futureDashboard = apiService.fetchDashboardData(userEmail!);
         isLoading = false;
       });
     } else {
-      setState(() {
-        isLoading = false;
-      });
+      setState(() => isLoading = false);
     }
   }
 
@@ -51,7 +45,6 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
 
-    // 🎯 Ukuran teks & ikon proporsional
     final nameFont = screenWidth * 0.05;
     final jurusanFont = screenWidth * 0.038;
     final sekolahFont = screenWidth * 0.033;
@@ -79,7 +72,7 @@ class _ProfilePageState extends State<ProfilePage> {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              // 🔷 HEADER PROFIL
+              // 🔹 HEADER PROFIL
               Container(
                 width: double.infinity,
                 decoration: const BoxDecoration(
@@ -104,19 +97,19 @@ class _ProfilePageState extends State<ProfilePage> {
                             ),
                             icon: const Icon(Icons.refresh, color: Colors.white, size: 22),
                             onPressed: () {
-                              if (userEmail != null) {
-                                setState(() {
+                              setState(() {
+                                if (userEmail != null) {
                                   futureProfile = apiService.fetchProfile(userEmail!);
-                                  futureKehadiran = apiService.fetchKehadiran(userEmail!);
-                                });
-                              }
+                                  futureDashboard = apiService.fetchDashboardData(userEmail!);
+                                }
+                              });
                             },
                           ),
                         ],
                       ),
                     ),
 
-                    // 🔹 Profil Siswa
+                    // 🔸 Profil Data
                     FutureBuilder<ProfileModel>(
                       future: futureProfile,
                       builder: (context, snapshot) {
@@ -175,133 +168,23 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
               ),
 
-              // 🔶 KONTEN UTAMA
+              // 🔹 Statistik Bulan Ini
               Padding(
                 padding: const EdgeInsets.all(20),
-                child: Column(
-                  children: [
-                    // 📊 Statistik Kehadiran
-                    FutureBuilder<List<KehadiranModel>>(
-                      future: futureKehadiran,
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const Center(child: CircularProgressIndicator());
-                        } else if (snapshot.hasError) {
-                          return Text('Error: ${snapshot.error}');
-                        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                          return const Text('Tidak ada data kehadiran');
-                        }
+                child: FutureBuilder<DashboardData>(
+                  future: futureDashboard,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    } else if (snapshot.hasError) {
+                      return Text('Error: ${snapshot.error}');
+                    } else if (!snapshot.hasData) {
+                      return const Text('Tidak ada data statistik');
+                    }
 
-                        final data = snapshot.data!;
-                        final tepatWaktu = data.where((e) => e.status == 'Tepat Waktu').length;
-                        final terlambat = data.where((e) => e.status == 'Terlambat').length;
-                        final izin = data.where((e) => e.status == 'Izin').length;
-                        final sakit = data.where((e) => e.status == 'Sakit').length;
-
-                        return GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const MainPage(initialIndex: 0),
-                              ),
-                            );
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.all(18),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.08),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              children: [
-                                Row(
-                                  children: [
-                                    const Icon(Icons.show_chart, size: 18),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'Statistik Bulan Ini',
-                                      style: TextStyle(
-                                        fontSize: tabFont,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                    const Spacer(),
-                                    Text(
-                                      'Oktober 2025',
-                                      style: TextStyle(
-                                        fontSize: infoLabelFont,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 16),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: _buildStatCard(
-                                        '$tepatWaktu', 'Tepat Waktu',
-                                        const Color(0xFFD4F4DD),
-                                        const Color(0xFF5FAF5C),
-                                        statNumberFont,
-                                        statLabelFont,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 14),
-                                    Expanded(
-                                      child: _buildStatCard(
-                                        '$terlambat', 'Terlambat',
-                                        const Color(0xFFFFDADA),
-                                        const Color(0xFFAF5C5C),
-                                        statNumberFont,
-                                        statLabelFont,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 14),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: _buildStatCard(
-                                        '$izin', 'Izin',
-                                        const Color(0xFFFFF4D4),
-                                        const Color(0xFFAF9A5C),
-                                        statNumberFont,
-                                        statLabelFont,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 14),
-                                    Expanded(
-                                      child: _buildStatCard(
-                                        '$sakit', 'Sakit',
-                                        const Color(0xFFFFDCC4),
-                                        const Color(0xFFAF7A5C),
-                                        statNumberFont,
-                                        statLabelFont,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // 📘 TAB INFORMASI & DETAIL
-                    Container(
+                    final data = snapshot.data!;
+                    return Container(
+                      padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
@@ -317,34 +200,94 @@ class _ProfilePageState extends State<ProfilePage> {
                         children: [
                           Row(
                             children: [
-                              _buildTabButton('Informasi', 0, tabFont),
-                              _buildTabButton('Detail', 1, tabFont),
+                              const Icon(Icons.show_chart, size: 18),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Statistik Bulan Ini',
+                                style: TextStyle(
+                                  fontSize: tabFont,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const Spacer(),
+                              Text(
+                                _getNamaBulan(DateTime.now().month
+                                ),
+                                style: TextStyle(
+                                  fontSize: infoLabelFont,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
                             ],
                           ),
-                          FutureBuilder<ProfileModel>(
-                            future: futureProfile,
-                            builder: (context, snapshot) {
-                              if (snapshot.connectionState == ConnectionState.waiting) {
-                                return const Padding(
-                                  padding: EdgeInsets.all(20),
-                                  child: CircularProgressIndicator(),
-                                );
-                              } else if (snapshot.hasError) {
-                                return Text('Error: ${snapshot.error}');
-                              } else if (!snapshot.hasData) {
-                                return const Text('Tidak ada data');
-                              }
-
-                              final data = snapshot.data!;
-                              return _selectedTab == 0
-                                  ? _buildInformasiTab(data, infoLabelFont, infoValueFont)
-                                  : _buildDetailTab(infoLabelFont, infoValueFont);
-                            },
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(child: _buildStatCard("${data.hadir}", "Tepat Waktu", const Color(0xFFD4F4DD), const Color(0xFF5FAF5C), statNumberFont, statLabelFont)),
+                              const SizedBox(width: 14),
+                              Expanded(child: _buildStatCard("${data.terlambat}", "Terlambat", const Color(0xFFFFDADA), const Color(0xFFAF5C5C), statNumberFont, statLabelFont)),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          Row(
+                            children: [
+                              Expanded(child: _buildStatCard("${data.izin}", "Izin", const Color(0xFFFFF4D4), const Color(0xFFAF9A5C), statNumberFont, statLabelFont)),
+                              const SizedBox(width: 14),
+                              Expanded(child: _buildStatCard("${data.sakit}", "Sakit", const Color(0xFFFFDCC4), const Color(0xFFAF7A5C), statNumberFont, statLabelFont)),
+                            ],
                           ),
                         ],
                       ),
-                    ),
-                  ],
+                    );
+                  },
+                ),
+              ),
+
+              // 🔹 Tab Informasi & Detail
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          _buildTabButton('Informasi', 0, tabFont),
+                          _buildTabButton('Detail', 1, tabFont),
+                        ],
+                      ),
+                      FutureBuilder<ProfileModel>(
+                        future: futureProfile,
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return const Padding(
+                              padding: EdgeInsets.all(20),
+                              child: CircularProgressIndicator(),
+                            );
+                          } else if (snapshot.hasError) {
+                            return Text('Error: ${snapshot.error}');
+                          } else if (!snapshot.hasData) {
+                            return const Text('Tidak ada data');
+                          }
+
+                          final data = snapshot.data!;
+                          return _selectedTab == 0
+                              ? _buildInformasiTab(data, infoLabelFont, infoValueFont)
+                              : _buildDetailTab(infoLabelFont, infoValueFont);
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -451,5 +394,13 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
       ],
     );
+  }
+    // 🔹 Nama Bulan Helper
+  String _getNamaBulan(int bulan) {
+    const namaBulan = [
+      '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    return namaBulan[bulan];
   }
 }
