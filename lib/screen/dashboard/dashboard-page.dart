@@ -95,7 +95,18 @@ class DashboardPageState extends State<DashboardPage> {
 
   Widget _buildDashboardContent(BuildContext context, DashboardData data) {
     // 🟢 tampilkan semua data (bukan cuma 3)
-    final allHistory = data.history.toList();
+    final recentHistory = (data.history
+    .where((h) {
+      final tanggal = DateTime.tryParse(h.tanggal);
+      if (tanggal == null) return false;
+      final now = DateTime.now();
+      final threeDaysAgo = now.subtract(const Duration(days: 3));
+      return tanggal.isAfter(threeDaysAgo) && tanggal.isBefore(now.add(const Duration(days: 1)));
+    })
+    .toList()
+      ..sort((a, b) => DateTime.parse(b.tanggal).compareTo(DateTime.parse(a.tanggal))))
+  .take(3)
+  .toList();
 
     return Column(
       children: [
@@ -352,7 +363,7 @@ class DashboardPageState extends State<DashboardPage> {
                   const SizedBox(height: 10),
 
                   // === Tampilkan semua data dari API ===
-                  for (var history in allHistory)
+                  for (var history in recentHistory)
                     _buildHistoryCard(
                         history.tanggal,
                         history.keterangan,
