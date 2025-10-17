@@ -32,63 +32,99 @@ class ApiService {
 
   }
 
-  Future<DashboardData> fetchDashboardData(String userEmail) async {
-    try {
-      // 🟢 [TAMBAHAN GPT] ambil token dari SharedPreferences (hasil login)
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token') ?? '';
 
-      // API endpoint yang kamu punya
-      final kehadiranUrl = Uri.parse("$baseUrl/kehadiran?userPkl=$userEmail");
 
-      print("🔗 Fetching data dari: $kehadiranUrl");
-      print("🔑 Token: ${token.isNotEmpty ? 'Ditemukan' : 'Tidak ditemukan'}");
+Future<DashboardData> fetchDashboardData(String userEmail) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token') ?? '';
 
-      // 🟢 [TAMBAHAN GPT] tambahkan header Authorization jika Sanctum digunakan
-      final response = await http.get(
-        kehadiranUrl,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          if (token.isNotEmpty) 'Authorization': 'Bearer $token', // 🟢
-        },
-      );
+    // 🟢 Ambil data 1 bulan terakhir sebagai default
+    final now = DateTime.now();
+    final lastMonth = DateTime(now.year, now.month - 1, now.day);
 
-      print("📥 RESPONSE STATUS: ${response.statusCode}");
-      print("📦 RESPONSE BODY: ${response.body}");
+    // Format tanggal ke "dd-MM-yyyy" sesuai API kamu
+    String formatDate(DateTime date) {
+      return "${date.day.toString().padLeft(2, '0')}-"
+             "${date.month.toString().padLeft(2, '0')}-"
+             "${date.year}";
+    }
 
-      if (response.statusCode != 200) {
-        throw Exception("Gagal memuat data kehadiran (${response.statusCode})");
+    final start = formatDate(lastMonth);
+    final end = formatDate(now);
+
+    final kehadiranUrl = Uri.parse(
+        '$baseUrl/kehadiran?userPkl=$userEmail&start_date=$start&end_date=$end');
+
+    print("🔗 Fetching data dari: $kehadiranUrl");
+
+    final response = await http.get(
+      kehadiranUrl,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        if (token.isNotEmpty) 'Authorization': 'Bearer $token',
+      },
+    );
+
+    print("📥 RESPONSE STATUS: ${response.statusCode}");
+
+    if (response.statusCode != 200) {
+      throw Exception("Gagal memuat data kehadiran (${response.statusCode})");
+    }
+
+    final jsonData = jsonDecode(response.body);
+    final List<dynamic> kehadiranList = jsonData['data'] ?? [];
+
+    if (kehadiranList.isEmpty) {
+      throw Exception("Tidak ada data absensi ditemukan");
+    }
+
+    // 🟢 Parsing data ke model
+    DateTime? minDate;
+    DateTime? maxDate;
+
+    List<HistoryAbsen> historyList = kehadiranList.map<HistoryAbsen>((item) {
+      DateTime? parsedDate;
+      try {
+        parsedDate = DateTime.parse(item['date']); // format API: yyyy-MM-dd
+      } catch (_) {
+        parsedDate = null;
       }
 
-      final jsonData = jsonDecode(response.body);
-      final List<dynamic> kehadiranList = jsonData['data'] ?? [];
+      if (parsedDate != null) {
+        if (minDate == null || parsedDate.isBefore(minDate!)) minDate = parsedDate;
+        if (maxDate == null || parsedDate.isAfter(maxDate!)) maxDate = parsedDate;
+      }
 
-      // Konversi ke model HistoryAbsen
-      final List<HistoryAbsen> historyList = kehadiranList.map((item) {
-        return HistoryAbsen(
-          tanggal: item['date'] ?? '-',
-          keterangan: item['status'] ?? '-',
-          masuk: item['check_in'] ?? '-',
-          keluar: item['check_out'] ?? '-',
-          status: item['status'] ?? '-',
-        );
-      }).toList();
-
-      // Hitung jumlah hadir & terlambat (bisa disesuaikan)
-      int hadir = historyList.where((h) => h.status == "Tepat Waktu").length;
-      int terlambat = historyList.where((h) => h.status == "Terlambat").length;
-
-      return DashboardData(
-        hadir: hadir,
-        terlambat: terlambat,
-        izin: 0, // nanti bisa diambil dari API izin
-        sakit: 0, // nanti bisa diambil dari API sakit
-        history: historyList,
+      return HistoryAbsen(
+        tanggal: item['date'] ?? '-',
+        keterangan: item['status'] ?? '-',
+        masuk: item['check_in'] ?? '-',
+        keluar: item['check_out'] ?? '-',
+        status: item['status'] ?? '-',
+        startDate: parsedDate ?? DateTime.now(),
+        endDate: parsedDate ?? DateTime.now(),
       );
-    } catch (e) {
-      throw Exception("Gagal memuat data dashboard: $e");
+    }).toList();
 
-    }
+    // 🧮 Hitung jumlah sesuai status
+    int hadir = historyList.where((h) => h.status.toLowerCase() == "tepat waktu").length;
+    int terlambat = historyList.where((h) => h.status.toLowerCase() == "terlambat").length;
+    int izin = historyList.where((h) => h.status.toLowerCase() == "izin").length;
+    int sakit = historyList.where((h) => h.status.toLowerCase() == "sakit").length;
+
+    return DashboardData(
+      hadir: hadir,
+      terlambat: terlambat,
+      izin: izin,
+      sakit: sakit,
+      history: historyList,
+      startDate: minDate ?? now,
+      endDate: maxDate ?? now,
+    );
+  } catch (e) {
+    throw Exception("Gagal memuat data dashboard: $e");
   }
+}
 }

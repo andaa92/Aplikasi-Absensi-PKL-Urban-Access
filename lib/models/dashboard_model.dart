@@ -3,6 +3,8 @@ class DashboardData {
   final int terlambat;
   final int izin;
   final int sakit;
+  final DateTime? startDate;
+  final DateTime? endDate;
   final List<HistoryAbsen> history;
 
   DashboardData({
@@ -11,6 +13,8 @@ class DashboardData {
     required this.izin,
     required this.sakit,
     required this.history,
+    this.startDate,
+    this.endDate,
   });
 }
 
@@ -20,6 +24,8 @@ class HistoryAbsen {
   final String masuk;
   final String keluar;
   final String status;
+  final DateTime? startDate;
+  final DateTime? endDate;
 
   HistoryAbsen({
     required this.tanggal,
@@ -27,5 +33,7 @@ class HistoryAbsen {
     required this.masuk,
     required this.keluar,
     required this.status,
+    this.startDate,
+    this.endDate,
   });
 }

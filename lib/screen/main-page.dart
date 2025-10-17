@@ -4,16 +4,11 @@ import 'package:absensi_pkl_urban/screen/absensi-page.dart';
 import 'package:absensi_pkl_urban/screen/profile-page.dart';
 import 'package:absensi_pkl_urban/navigation/navigation-item.dart';
 import 'package:absensi_pkl_urban/screen/dashboard/dashboard-page.dart';
-import 'package:absensi_pkl_urban/screen/dashboard/form-izin.dart';
-import 'package:absensi_pkl_urban/screen/dashboard/form-sakit.dart';
-import 'package:absensi_pkl_urban/screen/dashboard.dart';
 import 'package:absensi_pkl_urban/services/api_absensi_services.dart';
-
 
 class MainPage extends StatefulWidget {
   final int initialIndex;
   const MainPage({super.key, this.initialIndex = 1});
-
 
   @override
   State<MainPage> createState() => _MainPageState();
@@ -25,6 +20,9 @@ class _MainPageState extends State<MainPage> {
   List<dynamic> _absensiList = [];
   bool _isLoading = true;
 
+  // 🟢 Tambahan: Key agar Dashboard bisa di-refresh otomatis
+  final GlobalKey<DashboardPageState> _dashboardKey = GlobalKey<DashboardPageState>();
+
   @override
   void initState() {
     super.initState();
@@ -34,6 +32,7 @@ class _MainPageState extends State<MainPage> {
 
   Future<void> _loadAbsensiData() async {
     try {
+      // 🟢 nanti kamu bisa ganti email ini dengan SharedPreferences email login juga
       final data = await _service.getAbsensiList('destia@gmail.com');
       setState(() {
         _absensiList = data;
@@ -47,12 +46,12 @@ class _MainPageState extends State<MainPage> {
     }
   }
 
-  final List<Widget> _pages = [
-    AbsensiPage(),
-    DashboardPage(),
-    ProfilePage(),
+  // 🟢 Buat daftar halaman (Dashboard pakai UniqueKey supaya reset filter)
+  late final List<Widget> _pages = [
+    const AbsensiPage(),
+    DashboardPage(key: _dashboardKey), // tetap pakai key
+    const ProfilePage(),
   ];
-
 
   @override
   Widget build(BuildContext context) {
@@ -64,6 +63,12 @@ class _MainPageState extends State<MainPage> {
           setState(() {
             _currentIndex = index;
           });
+
+          // 🟢 Jika pindah ke Dashboard, langsung auto refresh data user login
+          if (index == 1) {
+            _dashboardKey.currentState?.refreshDashboard(); // 🟢 panggil fungsi asli dari Dashboard
+            developer.log("🟢 Dashboard auto refresh ketika tab aktif");
+          }
         },
       ),
     );
