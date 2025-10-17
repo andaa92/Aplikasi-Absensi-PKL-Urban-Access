@@ -60,9 +60,10 @@ class _AbsenFaceState extends State<AbsenFace> {
       final camera = _controller!.description;
       final rotation =
           InputImageRotationValue.fromRawValue(camera.sensorOrientation) ??
-              InputImageRotation.rotation0deg;
+          InputImageRotation.rotation0deg;
 
-      final format = InputImageFormatValue.fromRawValue(image.format.raw) ??
+      final format =
+          InputImageFormatValue.fromRawValue(image.format.raw) ??
           InputImageFormat.nv21;
 
       final metadata = InputImageMetadata(
@@ -72,10 +73,7 @@ class _AbsenFaceState extends State<AbsenFace> {
         bytesPerRow: image.planes.first.bytesPerRow,
       );
 
-      final inputImage = InputImage.fromBytes(
-        bytes: bytes,
-        metadata: metadata,
-      );
+      final inputImage = InputImage.fromBytes(bytes: bytes, metadata: metadata);
 
       final faces = await _faceDetector.processImage(inputImage);
 
@@ -156,14 +154,6 @@ class _AbsenFaceState extends State<AbsenFace> {
                   ],
                 ),
               ),
-              Positioned(
-                top: 40,
-                left: 10,
-                child: IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.white),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ),
             ],
           ),
 
@@ -211,17 +201,15 @@ class _AbsenFaceState extends State<AbsenFace> {
                       const SizedBox(height: 8),
                       const Text(
                         'Silahkan arahkan kamera ke wajah Anda',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.black54,
-                        ),
+                        style: TextStyle(fontSize: 14, color: Colors.black54),
                       ),
                       const SizedBox(height: 30),
 
                       // Area kamera besar tapi aman dari overflow
                       Container(
                         width: double.infinity,
-                        height: MediaQuery.of(context).size.height *
+                        height:
+                            MediaQuery.of(context).size.height *
                             0.5, // 50% layar
                         margin: const EdgeInsets.symmetric(horizontal: 16),
                         decoration: BoxDecoration(
@@ -232,38 +220,58 @@ class _AbsenFaceState extends State<AbsenFace> {
                             width: 1,
                           ),
                         ),
-                        child: _controller == null ||
-                                !_controller!.value.isInitialized
-                            ? const Center(
-                                child: CircularProgressIndicator(),
-                              )
-                            : Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(20),
-                                    child: AspectRatio(
-                                      aspectRatio:
-                                          _controller!.value.aspectRatio,
-                                      child: CameraPreview(_controller!),
+                        child:
+                            _controller == null ||
+                                    !_controller!.value.isInitialized
+                                ? const Center(
+                                  child: CircularProgressIndicator(),
+                                )
+                                : Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(20),
+                                      child: LayoutBuilder(
+                                        builder: (context, constraints) {
+                                          final cameraAspectRatio =
+                                              _controller!.value.aspectRatio;
+                                          final screenAspectRatio =
+                                              MediaQuery.of(
+                                                context,
+                                              ).size.aspectRatio;
+                                          final scale =
+                                              1 /
+                                              (cameraAspectRatio *
+                                                  screenAspectRatio);
+
+                                          return Transform.scale(
+                                            scale: scale,
+                                            child: AspectRatio(
+                                              aspectRatio: cameraAspectRatio,
+                                              child: CameraPreview(
+                                                _controller!,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
                                     ),
-                                  ),
-                                  if (_faceDetected)
-                                    Container(
-                                      color: Colors.green.withOpacity(0.4),
-                                      child: const Center(
-                                        child: Text(
-                                          '✅ Wajah terdeteksi!',
-                                          style: TextStyle(
-                                            fontSize: 22,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.white,
+                                    if (_faceDetected)
+                                      Container(
+                                        color: Colors.green.withOpacity(0.4),
+                                        child: const Center(
+                                          child: Text(
+                                            '✅ Wajah terdeteksi!',
+                                            style: TextStyle(
+                                              fontSize: 22,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                ],
-                              ),
+                                  ],
+                                ),
                       ),
                       const SizedBox(height: 20),
                     ],

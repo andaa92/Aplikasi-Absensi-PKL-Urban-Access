@@ -55,9 +55,7 @@ class _ProfilePageState extends State<ProfilePage> {
     final infoValueFont = screenWidth * 0.038;
 
     if (isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     if (userEmail == null) {
@@ -76,7 +74,7 @@ class _ProfilePageState extends State<ProfilePage> {
               Container(
                 width: double.infinity,
                 decoration: const BoxDecoration(
-                  color: Color(0xFF5BA3E7),
+                  color: Color(0xFF4FC3F7),
                   borderRadius: BorderRadius.only(
                     bottomLeft: Radius.circular(30),
                     bottomRight: Radius.circular(30),
@@ -85,7 +83,10 @@ class _ProfilePageState extends State<ProfilePage> {
                 child: Column(
                   children: [
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
                       child: Row(
                         children: [
                           IconButton(
@@ -95,12 +96,19 @@ class _ProfilePageState extends State<ProfilePage> {
                                 borderRadius: BorderRadius.circular(8),
                               ),
                             ),
-                            icon: const Icon(Icons.refresh, color: Colors.white, size: 22),
+                            icon: const Icon(
+                              Icons.refresh,
+                              color: Colors.white,
+                              size: 22,
+                            ),
                             onPressed: () {
                               setState(() {
                                 if (userEmail != null) {
-                                  futureProfile = apiService.fetchProfile(userEmail!);
-                                  futureDashboard = apiService.fetchDashboardData(userEmail!);
+                                  futureProfile = apiService.fetchProfile(
+                                    userEmail!,
+                                  );
+                                  futureDashboard = apiService
+                                      .fetchDashboardData(userEmail!);
                                 }
                               });
                             },
@@ -113,15 +121,24 @@ class _ProfilePageState extends State<ProfilePage> {
                     FutureBuilder<ProfileModel>(
                       future: futureProfile,
                       builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
                           return const Padding(
                             padding: EdgeInsets.all(20),
-                            child: CircularProgressIndicator(color: Colors.white),
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                            ),
                           );
                         } else if (snapshot.hasError) {
-                          return Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.white));
+                          return Text(
+                            'Error: ${snapshot.error}',
+                            style: const TextStyle(color: Colors.white),
+                          );
                         } else if (!snapshot.hasData) {
-                          return const Text('Tidak ada data', style: TextStyle(color: Colors.white));
+                          return const Text(
+                            'Tidak ada data',
+                            style: TextStyle(color: Colors.white),
+                          );
                         }
 
                         final data = snapshot.data!;
@@ -132,7 +149,11 @@ class _ProfilePageState extends State<ProfilePage> {
                               const CircleAvatar(
                                 radius: 55,
                                 backgroundColor: Colors.white,
-                                child: Icon(Icons.person, size: 60, color: Colors.grey),
+                                child: Icon(
+                                  Icons.person,
+                                  size: 60,
+                                  color: Colors.grey,
+                                ),
                               ),
                               const SizedBox(height: 10),
                               Text(
@@ -211,8 +232,7 @@ class _ProfilePageState extends State<ProfilePage> {
                               ),
                               const Spacer(),
                               Text(
-                                _getNamaBulan(DateTime.now().month
-                                ),
+                                _getNamaBulan(DateTime.now().month),
                                 style: TextStyle(
                                   fontSize: infoLabelFont,
                                   color: Colors.grey[600],
@@ -223,17 +243,53 @@ class _ProfilePageState extends State<ProfilePage> {
                           const SizedBox(height: 16),
                           Row(
                             children: [
-                              Expanded(child: _buildStatCard("${data.hadir}", "Tepat Waktu", const Color(0xFFD4F4DD), const Color(0xFF5FAF5C), statNumberFont, statLabelFont)),
+                              Expanded(
+                                child: _buildStatCard(
+                                  "${data.hadir}",
+                                  "Tepat Waktu",
+                                  const Color(0xFFD4F4DD),
+                                  const Color(0xFF5FAF5C),
+                                  statNumberFont,
+                                  statLabelFont,
+                                ),
+                              ),
                               const SizedBox(width: 14),
-                              Expanded(child: _buildStatCard("${data.terlambat}", "Terlambat", const Color(0xFFFFDADA), const Color(0xFFAF5C5C), statNumberFont, statLabelFont)),
+                              Expanded(
+                                child: _buildStatCard(
+                                  "${data.terlambat}",
+                                  "Terlambat",
+                                  const Color(0xFFFFDADA),
+                                  const Color(0xFFAF5C5C),
+                                  statNumberFont,
+                                  statLabelFont,
+                                ),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 14),
                           Row(
                             children: [
-                              Expanded(child: _buildStatCard("${data.izin}", "Izin", const Color(0xFFFFF4D4), const Color(0xFFAF9A5C), statNumberFont, statLabelFont)),
+                              Expanded(
+                                child: _buildStatCard(
+                                  "${data.izin}",
+                                  "Izin",
+                                  const Color(0xFFFFF4D4),
+                                  const Color(0xFFAF9A5C),
+                                  statNumberFont,
+                                  statLabelFont,
+                                ),
+                              ),
                               const SizedBox(width: 14),
-                              Expanded(child: _buildStatCard("${data.sakit}", "Sakit", const Color(0xFFFFDCC4), const Color(0xFFAF7A5C), statNumberFont, statLabelFont)),
+                              Expanded(
+                                child: _buildStatCard(
+                                  "${data.sakit}",
+                                  "Sakit",
+                                  const Color(0xFFFFDCC4),
+                                  const Color(0xFFAF7A5C),
+                                  statNumberFont,
+                                  statLabelFont,
+                                ),
+                              ),
                             ],
                           ),
                         ],
@@ -245,7 +301,10 @@ class _ProfilePageState extends State<ProfilePage> {
 
               // 🔹 Tab Informasi & Detail
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 10,
+                ),
                 child: Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -269,7 +328,8 @@ class _ProfilePageState extends State<ProfilePage> {
                       FutureBuilder<ProfileModel>(
                         future: futureProfile,
                         builder: (context, snapshot) {
-                          if (snapshot.connectionState == ConnectionState.waiting) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
                             return const Padding(
                               padding: EdgeInsets.all(20),
                               child: CircularProgressIndicator(),
@@ -282,7 +342,11 @@ class _ProfilePageState extends State<ProfilePage> {
 
                           final data = snapshot.data!;
                           return _selectedTab == 0
-                              ? _buildInformasiTab(data, infoLabelFont, infoValueFont)
+                              ? _buildInformasiTab(
+                                data,
+                                infoLabelFont,
+                                infoValueFont,
+                              )
                               : _buildDetailTab(infoLabelFont, infoValueFont);
                         },
                       ),
@@ -298,7 +362,14 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   // 🔹 Statistik Card
-  Widget _buildStatCard(String value, String label, Color bgColor, Color textColor, double valueFont, double labelFont) {
+  Widget _buildStatCard(
+    String value,
+    String label,
+    Color bgColor,
+    Color textColor,
+    double valueFont,
+    double labelFont,
+  ) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 18),
       decoration: BoxDecoration(
@@ -307,9 +378,23 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
       child: Column(
         children: [
-          Text(value, style: TextStyle(fontSize: valueFont, fontWeight: FontWeight.bold, color: textColor)),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: valueFont,
+              fontWeight: FontWeight.bold,
+              color: textColor,
+            ),
+          ),
           const SizedBox(height: 6),
-          Text(label, style: TextStyle(fontSize: labelFont, color: textColor, fontWeight: FontWeight.w500)),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: labelFont,
+              color: textColor,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         ],
       ),
     );
@@ -325,7 +410,10 @@ class _ProfilePageState extends State<ProfilePage> {
           decoration: BoxDecoration(
             border: Border(
               bottom: BorderSide(
-                color: _selectedTab == index ? const Color(0xFF5BA3E7) : Colors.transparent,
+                color:
+                    _selectedTab == index
+                        ? const Color(0xFF4FC3F7)
+                        : Colors.transparent,
                 width: 3,
               ),
             ),
@@ -335,7 +423,10 @@ class _ProfilePageState extends State<ProfilePage> {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: fontSize,
-              color: _selectedTab == index ? const Color(0xFF5BA3E7) : Colors.grey[600],
+              color:
+                  _selectedTab == index
+                      ? const Color(0xFF4FC3F7)
+                      : Colors.grey[600],
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -345,16 +436,38 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   // 🔹 Tab Informasi
-  Widget _buildInformasiTab(ProfileModel data, double labelFont, double valueFont) {
+  Widget _buildInformasiTab(
+    ProfileModel data,
+    double labelFont,
+    double valueFont,
+  ) {
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
-          _buildInfoRow(Icons.badge, 'Nomor Siswa (NSM)', data.nsm, labelFont, valueFont),
+          _buildInfoRow(
+            Icons.badge,
+            'Nomor Siswa (NSM)',
+            data.nsm,
+            labelFont,
+            valueFont,
+          ),
           const SizedBox(height: 18),
-          _buildInfoRow(Icons.school, 'Sekolah', data.namaSekolah, labelFont, valueFont),
+          _buildInfoRow(
+            Icons.school,
+            'Sekolah',
+            data.namaSekolah,
+            labelFont,
+            valueFont,
+          ),
           const SizedBox(height: 18),
-          _buildInfoRow(Icons.computer, 'Jurusan', data.namaJurusan, labelFont, valueFont),
+          _buildInfoRow(
+            Icons.computer,
+            'Jurusan',
+            data.namaJurusan,
+            labelFont,
+            valueFont,
+          ),
         ],
       ),
     );
@@ -366,18 +479,42 @@ class _ProfilePageState extends State<ProfilePage> {
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
-          _buildInfoRow(Icons.email, 'Email', userEmail ?? '-', labelFont, valueFont),
+          _buildInfoRow(
+            Icons.email,
+            'Email',
+            userEmail ?? '-',
+            labelFont,
+            valueFont,
+          ),
           const SizedBox(height: 18),
-          _buildInfoRow(Icons.apartment, 'Instansi', 'Urban Access', labelFont, valueFont),
+          _buildInfoRow(
+            Icons.apartment,
+            'Instansi',
+            'Urban Access',
+            labelFont,
+            valueFont,
+          ),
           const SizedBox(height: 18),
-          _buildInfoRow(Icons.location_on, 'Lokasi', 'Bandung', labelFont, valueFont),
+          _buildInfoRow(
+            Icons.location_on,
+            'Lokasi',
+            'Bandung',
+            labelFont,
+            valueFont,
+          ),
         ],
       ),
     );
   }
 
   // 🔹 Info Row
-  Widget _buildInfoRow(IconData icon, String label, String value, double labelFont, double valueFont) {
+  Widget _buildInfoRow(
+    IconData icon,
+    String label,
+    String value,
+    double labelFont,
+    double valueFont,
+  ) {
     return Row(
       children: [
         Icon(icon, size: 28, color: Colors.black87),
@@ -386,20 +523,41 @@ class _ProfilePageState extends State<ProfilePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: TextStyle(fontSize: labelFont, color: Colors.grey[600])),
+              Text(
+                label,
+                style: TextStyle(fontSize: labelFont, color: Colors.grey[600]),
+              ),
               const SizedBox(height: 4),
-              Text(value, style: TextStyle(fontSize: valueFont, fontWeight: FontWeight.w600)),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: valueFont,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
           ),
         ),
       ],
     );
   }
-    // 🔹 Nama Bulan Helper
+
+  // 🔹 Nama Bulan Helper
   String _getNamaBulan(int bulan) {
     const namaBulan = [
-      '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+      '',
+      'Januari',
+      'Februari',
+      'Maret',
+      'April',
+      'Mei',
+      'Juni',
+      'Juli',
+      'Agustus',
+      'September',
+      'Oktober',
+      'November',
+      'Desember',
     ];
     return namaBulan[bulan];
   }

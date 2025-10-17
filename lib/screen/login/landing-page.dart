@@ -29,31 +29,27 @@ class _LandingPageState extends State<LandingPage> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF0080FF),
-              Color(0xFF0099FF),
-            ],
+            colors: [Color(0xFF0080FF), Color(0xFF0099FF)],
           ),
         ),
         child: SafeArea(
           child: Column(
             children: [
               // Text kecil di kiri atas
-              Align(
-                alignment: Alignment.topLeft,
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 20, top: 15),
-                  child: Text(
-                    'Landing Page',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.9),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                ),
-              ),
-
+              // Align(
+              //   alignment: Alignment.topLeft,
+              //   child: Padding(
+              //     padding: const EdgeInsets.only(left: 20, top: 15),
+              //     child: Text(
+              //       'Landing Page',
+              //       style: TextStyle(
+              //         color: Colors.white.withOpacity(0.9),
+              //         fontSize: 12,
+              //         fontWeight: FontWeight.w400,
+              //       ),
+              //     ),
+              //   ),
+              // ),
               const SizedBox(height: 40),
 
               // Logo / animasi utama

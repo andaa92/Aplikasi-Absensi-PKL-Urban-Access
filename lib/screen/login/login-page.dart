@@ -29,7 +29,8 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _checkLoginHistory() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    bool hasLogin = prefs.containsKey('email') && prefs.containsKey('id_device');
+    bool hasLogin =
+        prefs.containsKey('email') && prefs.containsKey('id_device');
     setState(() {
       _hasLoggedInBefore = hasLogin;
     });
@@ -104,7 +105,9 @@ class _LoginPageState extends State<LoginPage> {
         // 🔹 Ambil profile siswa
         try {
           final profileResponse = await http.get(
-            Uri.parse('https://hr.urbanaccess.net/api/profile-siswa?userPkl=$emailUser'),
+            Uri.parse(
+              'https://hr.urbanaccess.net/api/profile-siswa?userPkl=$emailUser',
+            ),
             headers: {'Accept': 'application/json'},
           );
 
@@ -139,15 +142,15 @@ class _LoginPageState extends State<LoginPage> {
 
         Navigator.pushReplacementNamed(context, '/main');
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(data['msg'] ?? "Login gagal")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(data['msg'] ?? "Login gagal")));
       }
     } catch (e) {
       print("❌ Error Login: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Terjadi kesalahan: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Terjadi kesalahan: $e")));
     }
   }
 
@@ -176,13 +179,15 @@ class _LoginPageState extends State<LoginPage> {
         final currentDevice = await _getDeviceId();
 
         if (savedDevice == currentDevice && savedEmail != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Login cepat berhasil")),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text("Login cepat berhasil")));
           Navigator.pushReplacementNamed(context, '/main');
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Perangkat tidak cocok, login manual diperlukan")),
+            const SnackBar(
+              content: Text("Perangkat tidak cocok, login manual diperlukan"),
+            ),
           );
         }
       }
@@ -197,14 +202,7 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Column(
-        children: [
-          _buildHeader(),
-          Expanded(
-            child: _buildBody(),
-          ),
-        ],
-      ),
+      body: Column(children: [_buildHeader(), Expanded(child: _buildBody())]),
     );
   }
 
@@ -344,6 +342,7 @@ class _LoginPageState extends State<LoginPage> {
           const SizedBox(height: 18),
           const Text(
             'Login dengan cara cepat',
+            textAlign: TextAlign.center,
             style: TextStyle(fontSize: 11, color: Colors.grey),
           ),
           const SizedBox(height: 22),
@@ -369,7 +368,11 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _buildTextField(String hint, IconData icon, TextEditingController controller) {
+  Widget _buildTextField(
+    String hint,
+    IconData icon,
+    TextEditingController controller,
+  ) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -387,7 +390,10 @@ class _LoginPageState extends State<LoginPage> {
           ),
           filled: true,
           fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 18,
+          ),
         ),
       ),
     );
@@ -424,7 +430,10 @@ class _LoginPageState extends State<LoginPage> {
           ),
           filled: true,
           fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 18,
+          ),
         ),
       ),
     );
