@@ -1,6 +1,4 @@
 import 'dart:typed_data';
-import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
@@ -18,6 +16,7 @@ class _AbsenFaceState extends State<AbsenFace> {
   late FaceDetector _faceDetector;
   bool _isDetecting = false;
   bool _faceDetected = false;
+  int _faceDetectedCount = 0;
 
   @override
   void initState() {
@@ -39,7 +38,12 @@ class _AbsenFaceState extends State<AbsenFace> {
       (camera) => camera.lensDirection == CameraLensDirection.front,
     );
 
-    _controller = CameraController(frontCamera, ResolutionPreset.medium);
+    _controller = CameraController(
+      frontCamera,
+      ResolutionPreset.high,
+      enableAudio: false,
+    );
+
     await _controller!.initialize();
     _controller!.startImageStream(_processImage);
 
@@ -51,20 +55,20 @@ class _AbsenFaceState extends State<AbsenFace> {
     _isDetecting = true;
 
     try {
-      final WriteBuffer allBytes = WriteBuffer();
-      for (final Plane plane in image.planes) {
-        allBytes.putUint8List(plane.bytes);
-      }
-      final bytes = allBytes.done().buffer.asUint8List();
+              final bytesBuilder = BytesBuilder();
+        for (final Plane plane in image.planes) {
+          bytesBuilder.add(plane.bytes);
+        }
+        final bytes = bytesBuilder.toBytes();
 
       final camera = _controller!.description;
       final rotation =
           InputImageRotationValue.fromRawValue(camera.sensorOrientation) ??
-          InputImageRotation.rotation0deg;
+              InputImageRotation.rotation0deg;
 
       final format =
           InputImageFormatValue.fromRawValue(image.format.raw) ??
-          InputImageFormat.nv21;
+              InputImageFormat.nv21;
 
       final metadata = InputImageMetadata(
         size: Size(image.width.toDouble(), image.height.toDouble()),
@@ -74,10 +78,35 @@ class _AbsenFaceState extends State<AbsenFace> {
       );
 
       final inputImage = InputImage.fromBytes(bytes: bytes, metadata: metadata);
-
       final faces = await _faceDetector.processImage(inputImage);
 
-      setState(() => _faceDetected = faces.isNotEmpty);
+      setState(() {
+        _faceDetected = faces.isNotEmpty;
+        if (_faceDetected) {
+          _faceDetectedCount++;
+        } else {
+          _faceDetectedCount = 0;
+        }
+      });
+
+      // Jika wajah stabil terdeteksi 10 kali (±2 detik)
+      if (_faceDetectedCount >= 10) {
+        await _controller?.stopImageStream();
+        await _controller?.dispose();
+        _controller = null;
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("✅ Wajah terverifikasi, absen berhasil!"),
+            ),
+          );
+
+          Future.delayed(const Duration(seconds: 1), () {
+            Navigator.pop(context);
+          });
+        }
+      }
     } catch (e) {
       debugPrint('Error deteksi wajah: $e');
     } finally {
@@ -205,12 +234,10 @@ class _AbsenFaceState extends State<AbsenFace> {
                       ),
                       const SizedBox(height: 30),
 
-                      // Area kamera besar tapi aman dari overflow
+                      // 🔥 Area kamera proporsional
                       Container(
                         width: double.infinity,
-                        height:
-                            MediaQuery.of(context).size.height *
-                            0.5, // 50% layar
+                        height: MediaQuery.of(context).size.height * 0.5,
                         margin: const EdgeInsets.symmetric(horizontal: 16),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF5F5F5),
@@ -220,60 +247,42 @@ class _AbsenFaceState extends State<AbsenFace> {
                             width: 1,
                           ),
                         ),
-                        child:
-                            _controller == null ||
-                                    !_controller!.value.isInitialized
-                                ? const Center(
-                                  child: CircularProgressIndicator(),
-                                )
-                                : Stack(
-                                  alignment: Alignment.center,
-                                  children: [
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(20),
-                                      child: LayoutBuilder(
-                                        builder: (context, constraints) {
-                                          final cameraAspectRatio =
-                                              _controller!.value.aspectRatio;
-                                          final screenAspectRatio =
-                                              MediaQuery.of(
-                                                context,
-                                              ).size.aspectRatio;
-                                          final scale =
-                                              1 /
-                                              (cameraAspectRatio *
-                                                  screenAspectRatio);
+                        child: _controller == null ||
+                                !_controller!.value.isInitialized
+                            ? const Center(child: CircularProgressIndicator())
+                            : ClipRRect(
+                                borderRadius: BorderRadius.circular(20),
+                                child: LayoutBuilder(
+                                  builder: (context, constraints) {
+                                    final screenRatio = constraints.maxWidth /
+                                        constraints.maxHeight;
+                                    final cameraRatio =
+                                        _controller!.value.aspectRatio;
+                                    final scale = cameraRatio / screenRatio;
 
-                                          return Transform.scale(
-                                            scale: scale,
-                                            child: AspectRatio(
-                                              aspectRatio: cameraAspectRatio,
-                                              child: CameraPreview(
-                                                _controller!,
-                                              ),
-                                            ),
-                                          );
-                                        },
+                                    return Transform.scale(
+                                      scale: scale,
+                                      alignment: Alignment.center,
+                                      child: AspectRatio(
+                                        aspectRatio: cameraRatio,
+                                        child: CameraPreview(_controller!),
                                       ),
-                                    ),
-                                    if (_faceDetected)
-                                      Container(
-                                        color: Colors.green.withOpacity(0.4),
-                                        child: const Center(
-                                          child: Text(
-                                            '✅ Wajah terdeteksi!',
-                                            style: TextStyle(
-                                              fontSize: 22,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                  ],
+                                    );
+                                  },
                                 ),
+                              ),
                       ),
                       const SizedBox(height: 20),
+
+                      if (_faceDetected)
+                        const Text(
+                          '✅ Wajah terdeteksi!',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green,
+                          ),
+                        ),
                     ],
                   ),
                 ),

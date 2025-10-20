@@ -203,16 +203,26 @@ class _FormSakitState extends State<FormSakit> {
                             const SizedBox(width: 12),
                           ],
                         ),
-                        Row(
-                          children: [
-                            Text(
-                              _namaUser ?? 'User',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                              ),
+                       Row(
+                        children: [
+                          Text(
+                            (() {
+                              if (_namaUser == null || _namaUser!.isEmpty) return 'User';
+                              final parts = _namaUser!.trim().split(' ');
+                              if (parts.length >= 2) {
+                                return '${parts[0]} ${parts[1]}';
+                              } else {
+                                return parts[0];
+                              }
+                            })(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              overflow: TextOverflow.ellipsis,
                             ),
+                          ),
+
                             const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.all(2),
@@ -234,7 +244,7 @@ class _FormSakitState extends State<FormSakit> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 30),
                     const Text(
                       'Halaman Untuk Izin Sakit',
                       style: TextStyle(
@@ -252,7 +262,9 @@ class _FormSakitState extends State<FormSakit> {
                         fontWeight: FontWeight.w400,
                       ),
                     ),
+                     const SizedBox(height: 15),
                   ],
+                  
                 ),
               ),
             ),
@@ -361,10 +373,16 @@ class _FormSakitState extends State<FormSakit> {
                       TextField(
                         controller: _startDateController,
                         readOnly: true,
+                        
                         onTap: () => _selectDate(context, _startDateController),
                         decoration: InputDecoration(
                           hintText: 'Pilih tanggal mulai sakit',
+                           hintStyle: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[400],
+                          ),
                           filled: true,
+                          
                           fillColor: const Color(0xFFF8F9FA),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -408,6 +426,10 @@ class _FormSakitState extends State<FormSakit> {
                         onTap: () => _selectDate(context, _endDateController),
                         decoration: InputDecoration(
                           hintText: 'Pilih tanggal berakhir sakit',
+                           hintStyle: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[400],
+                          ),
                           filled: true,
                           fillColor: const Color(0xFFF8F9FA),
                           border: OutlineInputBorder(
@@ -451,6 +473,10 @@ class _FormSakitState extends State<FormSakit> {
                         maxLines: 5,
                         decoration: InputDecoration(
                           hintText: 'Jelaskan kondisi kesehatan atau penyakit',
+                           hintStyle: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[400],
+                          ),
                           filled: true,
                           fillColor: const Color(0xFFF8F9FA),
                           border: OutlineInputBorder(
