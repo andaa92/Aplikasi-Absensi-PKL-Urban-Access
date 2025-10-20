@@ -22,7 +22,7 @@ class _FormIzinState extends State<FormIzin> {
   @override
   void initState() {
     super.initState();
-    _loadUserData(); // 🟢 [TAMBAHAN GPT]
+    _loadUserData(); // 🟢 [TAMBAHfAN GPT]
   }
 
   // 🟢 [TAMBAHAN GPT] Ambil nama user & userPkl dari SharedPreferences
@@ -33,7 +33,7 @@ class _FormIzinState extends State<FormIzin> {
       _nsmController.text = prefs.getString('nsm') ?? ''; // 🟢 otomatis isi NSM
     });
   }
-
+  
 
 
   Future<void> _selectDate(BuildContext context, TextEditingController controller) async {
