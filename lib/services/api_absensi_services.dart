@@ -1,23 +1,37 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import '../models/absensipage.dart'; // pastikan path sesuai
+/*import '../models/absensipage.dart';
+import '../models/dashboard_model.dart';
+import '../services/api_service.dart';
 
 class AbsensiService {
-  Future<List<AbsensiModel>> getAbsensiList(String userPkl) async {
-    final url = Uri.parse('https://hr.urbanaccess.net/api/kehadiran?userPkl=$userPkl');
-    final response = await http.get(url);
+  final ApiService _apiService = ApiService();
 
-    print('Response body: ${response.body}'); // debug
+  Future<List<AbsensiModel>> getAbsensiList(
+    String userEmail, {
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    try {
+      // 🔹 Ambil data dari dashboard (biar ga double API)
+      final DashboardData dashboardData = await _apiService.fetchDashboardData(userEmail);
 
-    if (response.statusCode == 200) {
-      final decoded = jsonDecode(response.body);
-      final List<dynamic> data = decoded['data'];
-      return data.map((e) => AbsensiModel.fromJson(e)).toList();
+      // 🔹 Ambil history absensi dari dashboard
+      final history = dashboardData.history;
 
-    } else {
-      throw Exception('Gagal memuat data absensi (${response.statusCode})');
-    }  
-  }
-  
+      // 🔹 Mapping ke AbsensiModel
+      List<AbsensiModel> list = history.map((e) => AbsensiModel.fromJson(e)).toList();
+      // 🔹 Filter tanggal (kalau dipilih di UI)
+      if (startDate != null && endDate != null) {
+        list = list.where((item) {
+          final date = DateTime.tryParse(item.tanggal);
+          if (date == null) return false;
+          return date.isAfter(startDate.subtract(const Duration(days: 1))) &&
+              date.isBefore(endDate.add(const Duration(days: 1)));
+        }).toList();
+      }
 
-}
+      return list;
+    } catch (e) {
+      throw Exception('Gagal memuat data absensi: $e');
+    }
+      }
+}*/
