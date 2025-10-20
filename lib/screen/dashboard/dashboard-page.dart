@@ -1,9 +1,6 @@
-import 'package:absensi_pkl_urban/navigation/navigation-item.dart';
 import 'package:absensi_pkl_urban/screen/dashboard/absen-face.dart';
 import 'package:absensi_pkl_urban/screen/login/landing-page.dart';
 import 'package:flutter/material.dart';
-import 'package:absensi_pkl_urban/screen/absensi-page.dart';
-import 'package:absensi_pkl_urban/screen/profile-page.dart';
 import 'package:absensi_pkl_urban/screen/dashboard/form-izin.dart';
 import 'package:absensi_pkl_urban/screen/dashboard/form-sakit.dart';
 import 'package:absensi_pkl_urban/screen/main-page.dart';
@@ -12,6 +9,8 @@ import 'package:absensi_pkl_urban/services/api_service.dart';
 import 'package:absensi_pkl_urban/models/dashboard_model.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:geolocator/geolocator.dart';
+
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({Key? key}) : super(key: key);
@@ -92,6 +91,140 @@ class DashboardPageState extends State<DashboardPage> {
             ),
     );
   }
+          Future<void> _checkLocationAndNavigate() async {
+  try {
+    print("🧭 Tombol Fingerprint ditekan");
+
+    // Pastikan service lokasi aktif
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Layanan lokasi tidak aktif")),
+      );
+      return;
+    }
+
+    // Cek & minta izin lokasi
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Izin lokasi ditolak")),
+        );
+        return;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Izin lokasi ditolak permanen, buka pengaturan untuk mengaktifkan.")),
+      );
+      return;
+    }
+
+    // Ambil posisi user
+    Position position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+
+    // Koordinat lokasi kantor (contoh)
+    const double officeLatitude = -6.947776152570353;
+    const double officeLongitude = 107.62715926653917;
+
+    // Hitung jarak dari posisi user ke kantor
+    double distance = Geolocator.distanceBetween(
+      position.latitude,
+      position.longitude,
+      officeLatitude,
+      officeLongitude,
+    );
+
+    print("📍 Lokasi user: ${position.latitude}, ${position.longitude}");
+    print("📏 Jarak ke kantor: ${distance.toStringAsFixed(2)} meter");
+
+    // Jika jarak di bawah 100 meter, boleh lanjut
+    if (distance <= 20) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const AbsenFinger()),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Anda berada di luar area absensi (${distance.toStringAsFixed(1)} m)")),
+      );
+    }
+  } catch (e) {
+    print("❌ Error lokasi: $e");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Terjadi kesalahan: $e")),
+    );
+  }
+}
+Future<void> _checkLocationAndOpenCamera() async {
+  try {
+    // Pastikan service lokasi aktif
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Layanan lokasi tidak aktif")),
+      );
+      return;
+    }
+
+    // Cek izin lokasi
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Izin lokasi ditolak")),
+        );
+        return;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Izin lokasi ditolak permanen")),
+      );
+      return;
+    }
+
+    // Ambil posisi user
+    Position position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+
+    const double officeLatitude = -6.947776152570353;
+    const double officeLongitude = 107.62715926653917;
+
+    double distance = Geolocator.distanceBetween(
+      position.latitude,
+      position.longitude,
+      officeLatitude,
+      officeLongitude,
+    );
+
+    if (distance <= 100) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const AbsenFace()),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Anda berada di luar area absensi (${distance.toStringAsFixed(1)} m)")),
+      );
+    }
+  } catch (e) {
+    print("❌ Error lokasi: $e");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Terjadi kesalahan: $e")),
+    );
+  }
+}
+
+
 
   Widget _buildDashboardContent(BuildContext context, DashboardData data) {
     // 🟢 tampilkan semua data (bukan cuma 3)
@@ -270,25 +403,12 @@ class DashboardPageState extends State<DashboardPage> {
                   Row(
                     children: [
                       Expanded(
-                        child: _buildMethodCard(
-                            'Finger Print', Icons.fingerprint, () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => const AbsenFinger()),
-                          );
-                        }),
+                        child:_buildMethodCard('Finger Print', Icons.fingerprint, _checkLocationAndNavigate),
+
                       ),
                       const SizedBox(width: 15),
                       Expanded(
-                        child:
-                            _buildMethodCard('Face ID', Icons.face, () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => const AbsenFace()),
-                          );
-                        }),
+                        child: _buildMethodCard('Face ID', Icons.face, _checkLocationAndOpenCamera),
                       ),
                     ],
                   ),

@@ -18,6 +18,8 @@ class _AbsenFaceState extends State<AbsenFace> {
   late FaceDetector _faceDetector;
   bool _isDetecting = false;
   bool _faceDetected = false;
+  int _faceDetectedCount = 0;
+
 
   @override
   void initState() {
@@ -47,43 +49,67 @@ class _AbsenFaceState extends State<AbsenFace> {
   }
 
   Future<void> _processImage(CameraImage image) async {
-    if (_isDetecting) return;
-    _isDetecting = true;
+  if (_isDetecting) return;
+  _isDetecting = true;
 
-    try {
-      final WriteBuffer allBytes = WriteBuffer();
-      for (final Plane plane in image.planes) {
-        allBytes.putUint8List(plane.bytes);
-      }
-      final bytes = allBytes.done().buffer.asUint8List();
-
-      final camera = _controller!.description;
-      final rotation =
-          InputImageRotationValue.fromRawValue(camera.sensorOrientation) ??
-          InputImageRotation.rotation0deg;
-
-      final format =
-          InputImageFormatValue.fromRawValue(image.format.raw) ??
-          InputImageFormat.nv21;
-
-      final metadata = InputImageMetadata(
-        size: Size(image.width.toDouble(), image.height.toDouble()),
-        rotation: rotation,
-        format: format,
-        bytesPerRow: image.planes.first.bytesPerRow,
-      );
-
-      final inputImage = InputImage.fromBytes(bytes: bytes, metadata: metadata);
-
-      final faces = await _faceDetector.processImage(inputImage);
-
-      setState(() => _faceDetected = faces.isNotEmpty);
-    } catch (e) {
-      debugPrint('Error deteksi wajah: $e');
-    } finally {
-      _isDetecting = false;
+  try {
+    final WriteBuffer allBytes = WriteBuffer();
+    for (final Plane plane in image.planes) {
+      allBytes.putUint8List(plane.bytes);
     }
+    final bytes = allBytes.done().buffer.asUint8List();
+
+    final camera = _controller!.description;
+    final rotation =
+        InputImageRotationValue.fromRawValue(camera.sensorOrientation) ??
+        InputImageRotation.rotation0deg;
+
+    final format =
+        InputImageFormatValue.fromRawValue(image.format.raw) ??
+        InputImageFormat.nv21;
+
+    final metadata = InputImageMetadata(
+      size: Size(image.width.toDouble(), image.height.toDouble()),
+      rotation: rotation,
+      format: format,
+      bytesPerRow: image.planes.first.bytesPerRow,
+    );
+
+    final inputImage = InputImage.fromBytes(bytes: bytes, metadata: metadata);
+    final faces = await _faceDetector.processImage(inputImage);
+
+    setState(() {
+      _faceDetected = faces.isNotEmpty;
+      if (_faceDetected) {
+        _faceDetectedCount++;
+      } else {
+        _faceDetectedCount = 0;
+      }
+    });
+
+    // Kalau wajah terdeteksi stabil 10 kali berturut-turut (±2 detik)
+    if (_faceDetectedCount >= 10) {
+      await _controller?.stopImageStream();
+      await _controller?.dispose();
+      _controller = null;
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("✅ Wajah terverifikasi, absen berhasil!")),
+        );
+
+        Future.delayed(const Duration(seconds: 1), () {
+          Navigator.pop(context); // balik ke dashboard
+        });
+      }
+    }
+  } catch (e) {
+    debugPrint('Error deteksi wajah: $e');
+  } finally {
+    _isDetecting = false;
   }
+}
+
 
   @override
   void dispose() {
@@ -244,13 +270,13 @@ class _AbsenFaceState extends State<AbsenFace> {
                                               (cameraAspectRatio *
                                                   screenAspectRatio);
 
-                                          return Transform.scale(
-                                            scale: scale,
-                                            child: AspectRatio(
-                                              aspectRatio: cameraAspectRatio,
-                                              child: CameraPreview(
-                                                _controller!,
-                                              ),
+                                          return FittedBox(
+                                            fit: BoxFit.cover,
+                                            clipBehavior: Clip.hardEdge,
+                                            child: SizedBox(
+                                              width: _controller!.value.previewSize!.height,
+                                              height: _controller!.value.previewSize!.width,
+                                              child: CameraPreview(_controller!),
                                             ),
                                           );
                                         },
