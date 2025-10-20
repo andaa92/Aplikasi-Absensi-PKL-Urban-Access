@@ -6,6 +6,12 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'dart:io';
 import 'package:local_auth/local_auth.dart';
 
+// Tambahan untuk enkripsi (alias enc)
+import 'package:encrypt/encrypt.dart' as enc;
+import 'package:crypto/crypto.dart';
+import 'dart:typed_data';
+import 'dart:math';
+
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
 
@@ -29,8 +35,9 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _checkLoginHistory() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    bool hasLogin =
-        prefs.containsKey('email') && prefs.containsKey('id_device');
+    bool hasLogin = prefs.containsKey('email') &&
+        prefs.containsKey('id_device') &&
+        prefs.containsKey('password_enc');
     setState(() {
       _hasLoggedInBefore = hasLogin;
     });
@@ -56,6 +63,80 @@ class _LoginPageState extends State<LoginPage> {
     return deviceId;
   }
 
+  // ------------------------------
+  // ENCRYPT / DECRYPT UTIL
+  // keySource = deviceId + email
+  // ------------------------------
+  Uint8List _sha256Bytes(String input) {
+    final bytes = utf8.encode(input);
+    final digest = sha256.convert(bytes);
+    return Uint8List.fromList(digest.bytes);
+  }
+
+  // Encrypt password -> store as base64(iv + cipher)
+  String _encryptPassword(String password, String keySource) {
+    final keyBytes = _sha256Bytes(keySource); // 32 bytes
+    final key = enc.Key(keyBytes);
+    final iv = enc.IV.fromSecureRandom(16); // 16 bytes IV
+
+    final encrypter =
+        enc.Encrypter(enc.AES(key, mode: enc.AESMode.cbc, padding: 'PKCS7'));
+    final encrypted = encrypter.encrypt(password, iv: iv);
+
+    // combine iv + cipher bytes, then base64 encode
+    final combined = Uint8List.fromList(iv.bytes + encrypted.bytes);
+    return base64Encode(combined);
+  }
+
+  String? _tryDecryptPassword(String base64Combined, String keySource) {
+    try {
+      final combined = base64Decode(base64Combined);
+      if (combined.length < 17) return null; // invalid
+      final ivBytes = combined.sublist(0, 16);
+      final cipherBytes = combined.sublist(16);
+
+      final keyBytes = _sha256Bytes(keySource);
+      final key = enc.Key(keyBytes);
+      final iv = enc.IV(Uint8List.fromList(ivBytes));
+
+      final encrypter =
+          enc.Encrypter(enc.AES(key, mode: enc.AESMode.cbc, padding: 'PKCS7'));
+      final decrypted = encrypter.decrypt(
+        enc.Encrypted(Uint8List.fromList(cipherBytes)),
+        iv: iv,
+      );
+      return decrypted;
+    } catch (e) {
+      print('Decrypt error: $e');
+      return null;
+    }
+  }
+
+  // ------------------------------
+  // Save credentials setelah login manual berhasil
+  // ------------------------------
+  Future<void> _saveCredentialsEncrypted(String email, String password) async {
+    try {
+      final deviceId = await _getDeviceId();
+      final keySource = deviceId + email;
+      final encPass = _encryptPassword(password, keySource);
+
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString('email', email);
+      await prefs.setString('id_device', deviceId);
+      await prefs.setString('password_enc', encPass);
+      print('Credentials saved (encrypted).');
+      setState(() {
+        _hasLoggedInBefore = true;
+      });
+    } catch (e) {
+      print('Gagal menyimpan kredensial terenkripsi: $e');
+    }
+  }
+
+  // ------------------------------
+  // Fungsi login manual (tidak banyak diubah selain menyimpan password terenkripsi)
+  // ------------------------------
   Future<void> _login() async {
     String email = _emailController.text.trim();
     String password = _passwordController.text.trim();
@@ -92,6 +173,9 @@ class _LoginPageState extends State<LoginPage> {
         await prefs.setString('id_device', data['id_device'] ?? deviceId);
         await prefs.setString('token', data['token'] ?? '');
 
+        // Simpan password terenkripsi (opsi B + enkripsi dinamis)
+        await _saveCredentialsEncrypted(email, password);
+
         setState(() {
           _hasLoggedInBefore = true;
         });
@@ -113,8 +197,56 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  // ✅ Logika login cepat (biometrik + validasi device)
-  Future<void> _loginCepat() async {
+  // ------------------------------
+  // Reusable: panggil API login dengan kredensial yang ada
+  // ------------------------------
+  Future<bool> _callApiLogin(
+    String email,
+    String password,
+    String deviceId,
+  ) async {
+    try {
+      final url = Uri.parse('https://hr.urbanaccess.net/api/login');
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({
+          'email': email,
+          'password': password,
+          'id_device': deviceId,
+        }),
+      );
+
+      print('quick login response body: ${response.body}');
+      var data = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && data['statusCode'] == 200) {
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setString('email', data['email'] ?? email);
+        await prefs.setString('id_device', data['id_device'] ?? deviceId);
+        await prefs.setString('token', data['token'] ?? '');
+        return true;
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(data['msg'] ?? "Login cepat gagal")),
+        );
+        return false;
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Terjadi kesalahan saat login cepat: $e")),
+      );
+      return false;
+    }
+  }
+
+  // ------------------------------
+  // Handler biometrik yang dipilih user (Fingerprint / Face)
+  // ------------------------------
+  Future<void> _loginDenganBiometrik(BiometricType tipe) async {
     try {
       bool canCheckBiometrics = await _auth.canCheckBiometrics;
       bool isSupported = await _auth.isDeviceSupported();
@@ -126,36 +258,108 @@ class _LoginPageState extends State<LoginPage> {
         return;
       }
 
+      final available = await _auth.getAvailableBiometrics();
+      // Note: on some devices / Android versions, biometric types might be reported differently.
+      if (!available.contains(tipe)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              tipe == BiometricType.face
+                  ? "Face ID tidak tersedia pada perangkat ini"
+                  : "Fingerprint tidak tersedia pada perangkat ini",
+            ),
+          ),
+        );
+        return;
+      }
+
       bool didAuthenticate = await _auth.authenticate(
-        localizedReason: 'Gunakan biometrik untuk login cepat',
+        localizedReason: tipe == BiometricType.face
+            ? 'Gunakan Face ID untuk login cepat'
+            : 'Gunakan fingerprint untuk login cepat',
         options: const AuthenticationOptions(biometricOnly: true),
       );
 
       if (didAuthenticate) {
+        // Ambil data tersimpan
         SharedPreferences prefs = await SharedPreferences.getInstance();
         final savedEmail = prefs.getString('email');
         final savedDevice = prefs.getString('id_device');
-        final token = prefs.getString('token');
+        final savedEncPass = prefs.getString('password_enc');
+
+        if (savedEmail == null || savedDevice == null || savedEncPass == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                "Tidak ada kredensial tersimpan. Silakan login manual terlebih dahulu.",
+              ),
+            ),
+          );
+          return;
+        }
+
         final currentDevice = await _getDeviceId();
 
-        // ✅ Pastikan device cocok
-        if (savedDevice == currentDevice && savedEmail != null) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text("Login cepat berhasil")));
-          Navigator.pushReplacementNamed(context, '/main');
-        } else {
+        // Pastikan device cocok
+        if (savedDevice != currentDevice) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text("Perangkat tidak cocok, login manual diperlukan"),
             ),
           );
+          return;
+        }
+
+        // Derive keySource sama seperti saat menyimpan: deviceId + email
+        final keySource = currentDevice + savedEmail;
+        final password = _tryDecryptPassword(savedEncPass, keySource);
+
+        if (password == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                "Gagal mendekripsi password. Silakan login manual.",
+              ),
+            ),
+          );
+          return;
+        }
+
+        // Panggil API login (sesuai pilihan B)
+        bool ok = await _callApiLogin(savedEmail, password, currentDevice);
+
+        if (ok) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text("Login cepat berhasil")));
+          Navigator.pushReplacementNamed(context, '/main');
         }
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Gagal autentikasi biometrik: $e")),
       );
+    }
+  }
+
+  // (Opsional) tetap sediakan _loginCepat() jika ada pemanggilan lain, pakai default biometric flow
+  Future<void> _loginCepat() async {
+    // fallback generic biometric: gunakan availableBiometrics[0] jika ada
+    try {
+      final available = await _auth.getAvailableBiometrics();
+      if (available.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Biometrik tidak tersedia")),
+        );
+        return;
+      }
+      // pilih tipe pertama yang available (biasanya fingerprint atau face)
+      final tipe = available.first;
+      await _loginDenganBiometrik(tipe);
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Login cepat gagal: $e")));
     }
   }
 
@@ -311,13 +515,16 @@ class _LoginPageState extends State<LoginPage> {
                           _buildQuickLoginButton(
                             icon: Icons.fingerprint,
                             label: 'Finger Print',
-                            onTap: _loginCepat,
+                            onTap: () => _loginDenganBiometrik(
+                              BiometricType.fingerprint,
+                            ),
                           ),
                           const SizedBox(width: 45),
                           _buildQuickLoginButton(
                             icon: Icons.face,
                             label: 'Face ID',
-                            onTap: _loginCepat,
+                            onTap: () =>
+                                _loginDenganBiometrik(BiometricType.face),
                           ),
                         ],
                       ),
