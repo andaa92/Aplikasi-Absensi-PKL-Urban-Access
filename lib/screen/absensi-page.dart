@@ -34,6 +34,7 @@ class _AbsensiPageState extends State<AbsensiPage> {
   void initState() {
     super.initState();
     _loadUserInfo();
+    _loadUserInfo();
   }
 
   Future<String?> _getUserName() async {
@@ -54,7 +55,7 @@ class _AbsensiPageState extends State<AbsensiPage> {
     });
 
     if (_userEmail != null && _userEmail!.isNotEmpty) {
-      _loadAbsensi();
+      _loadAbsensi(applyDefaultFilter: true);
     } else {
       setState(() {
         _isLoading = false;
@@ -63,62 +64,86 @@ class _AbsensiPageState extends State<AbsensiPage> {
     }
   }
 
-  Future<void> _loadAbsensi() async {
-    try {
-      setState(() {
-        _isLoading = true;
-        _errorMessage = null;
-      });
+  Future<void> _loadAbsensi({bool applyDefaultFilter = true}) async {
+  try {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
-      final DashboardData dashboardData =
-          await _apiService.fetchDashboardData(_userEmail!);
+    final DashboardData dashboardData =
+        await _apiService.fetchDashboardData(_userEmail!);
 
-      final List<AbsensiModel> list = dashboardData.history
-          .map((e) => AbsensiModel.fromJson({
-                'tanggal': e.tanggal,
-                'masuk': e.masuk,
-                'keluar': e.keluar,
-                'status': e.status,
-              }))
-          .toList();
+    final List<AbsensiModel> list = dashboardData.history
+        .map((e) => AbsensiModel.fromJson({
+              'tanggal': e.tanggal,
+              'masuk': e.masuk,
+              'keluar': e.keluar,
+              'status': e.status,
+            }))
+        .where((absen) => absen.status.toLowerCase() != 'libur')
+        .toList();
 
-      setState(() {
-        _absensiList = list;
-        _filteredList = list;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Gagal memuat data absensi: $e';
-      });
-    }
-  }
+    List<AbsensiModel> filteredList = list;
 
-  void _applyFilter(String filter, DateTimeRange? range) {
-    List<AbsensiModel> tempList = _absensiList;
+    if (applyDefaultFilter) {
+      final DateTime now = DateTime.now();
+      final DateTime oneWeekAgo = now.subtract(const Duration(days: 7));
 
-    if (filter != "Semua") {
-      tempList = tempList
-          .where((e) => e.status.toLowerCase() == filter.toLowerCase())
-          .toList();
-    }
-
-    if (range != null) {
-      tempList = tempList.where((e) {
-        final date = DateFormat('yyyy-MM-dd').parse(e.tanggal);
-        return date.isAfter(range.start.subtract(const Duration(days: 1))) &&
-            date.isBefore(range.end.add(const Duration(days: 1)));
+      filteredList = list.where((absen) {
+        final date = DateTime.parse(absen.tanggal);
+        return date.isAfter(oneWeekAgo) &&
+            date.isBefore(now.add(const Duration(days: 1)));
       }).toList();
     }
 
+    // urutkan terbaru -> terlama
+    filteredList.sort((a, b) =>
+        DateTime.parse(b.tanggal).compareTo(DateTime.parse(a.tanggal)));
+
     setState(() {
-      _selectedFilter = filter;
-      _selectedDateRange = range;
-      _filteredList = tempList;
+      _absensiList = filteredList;
+      _filteredList = filteredList;
+      _isLoading = false;
+    });
+  } catch (e) {
+    setState(() {
+      _isLoading = false;
+      _errorMessage = 'Gagal memuat data absensi: $e';
     });
   }
+}
 
+void _applyFilter(String filter, DateTimeRange? range) async {
+  // saat user filter manual, kita reload semua data tanpa batas 7 hari
+  await _loadAbsensi(applyDefaultFilter: false);
+
+  List<AbsensiModel> tempList = _absensiList;
+
+  if (filter != "Semua") {
+    tempList = tempList
+        .where((e) => e.status.toLowerCase() == filter.toLowerCase())
+        .toList();
+  }
+
+  if (range != null) {
+    tempList = tempList.where((e) {
+      final date = DateFormat('yyyy-MM-dd').parse(e.tanggal);
+      return date.isAfter(range.start.subtract(const Duration(days: 1))) &&
+          date.isBefore(range.end.add(const Duration(days: 1)));
+    }).toList();
+  }
+
+  // urutkan juga dari terbaru -> terlama
+  tempList.sort((a, b) =>
+      DateTime.parse(b.tanggal).compareTo(DateTime.parse(a.tanggal)));
+
+  setState(() {
+    _selectedFilter = filter;
+    _selectedDateRange = range;
+    _filteredList = tempList;
+  });
+}
   Future<void> _openFilterDialog() async {
     String tempFilter = _selectedFilter;
     DateTimeRange? tempRange = _selectedDateRange;
@@ -361,7 +386,7 @@ class _AbsensiPageState extends State<AbsensiPage> {
       ),
       title: Text(
         '${item.hari}, ${item.tanggal}',
-        style: const TextStyle(fontWeight: FontWeight.bold),
+        style: const TextStyle(fontWeight: FontWeight.w400),
       ),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
