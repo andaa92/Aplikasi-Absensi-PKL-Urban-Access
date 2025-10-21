@@ -122,4 +122,36 @@ class ApiService {
       throw Exception("Gagal memuat data dashboard: $e");
     }
   }
+  // === ABSEN MASUK SISWA ===
+    Future<Map<String, dynamic>> absenMasukSiswa(String userEmail) async {
+    final url = Uri.parse('$baseUrl/absen-masuk-siswa');
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'userPkl': userEmail}),
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Gagal absen: ${response.body}');
+    }
+  }
+
+  // === ABSEN PULANG SISWA ===
+  Future<Map<String, dynamic>> absenPulangSiswa(String userEmail) async {
+  final url = Uri.parse('$baseUrl/absen-pulang-siswa');
+  final response = await http.post(
+    url,
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'userPkl': userEmail}),
+  );
+
+  if (response.statusCode == 200) {
+    return jsonDecode(response.body);
+  } else {
+    throw Exception('Gagal absen pulang: ${response.body}');
+  }
+}
+
 }
