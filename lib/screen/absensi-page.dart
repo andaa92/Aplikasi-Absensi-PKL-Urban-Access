@@ -63,37 +63,55 @@ class _AbsensiPageState extends State<AbsensiPage> {
     }
   }
 
-  Future<void> _loadAbsensi() async {
-    try {
-      setState(() {
-        _isLoading = true;
-        _errorMessage = null;
-      });
+ Future<void> _loadAbsensi() async { 
 
-      final DashboardData dashboardData =
-          await _apiService.fetchDashboardData(_userEmail!);
+  try {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
-      final List<AbsensiModel> list = dashboardData.history
-          .map((e) => AbsensiModel.fromJson({
-                'tanggal': e.tanggal,
-                'masuk': e.masuk,
-                'keluar': e.keluar,
-                'status': e.status,
-              }))
-          .toList();
+    final DashboardData dashboardData =
+        await _apiService.fetchDashboardData(_userEmail!);
 
-      setState(() {
-        _absensiList = list;
-        _filteredList = list;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Gagal memuat data absensi: $e';
-      });
-    }
+    final List<AbsensiModel> list = dashboardData.history
+        .map((e) => AbsensiModel.fromJson({
+              'tanggal': e.tanggal,
+              'masuk': e.masuk,
+              'keluar': e.keluar,
+              'status': e.status,
+            }))
+        .toList();
+
+    // 🟢 Filter hanya data 1 bulan terakhir
+    final now = DateTime.now();
+    final satuBulanLalu = DateTime(now.year, now.month - 1, now.day);
+
+    final List<AbsensiModel> filtered = list.where((item) {
+      final tanggalItem = DateFormat('yyyy-MM-dd').parse(item.tanggal);
+      return tanggalItem.isAfter(satuBulanLalu) || tanggalItem.isAtSameMomentAs(satuBulanLalu);
+    }).toList();
+
+    // 🟢 Urutkan dari tanggal terbaru ke terlama
+    filtered.sort((a, b) {
+      final tglA = DateFormat('yyyy-MM-dd').parse(a.tanggal);
+      final tglB = DateFormat('yyyy-MM-dd').parse(b.tanggal);
+      return tglB.compareTo(tglA); // Descending (terbaru duluan)
+    });
+
+    setState(() {
+      _absensiList = filtered;
+      _filteredList = filtered;
+      _isLoading = false;
+    });
+  } catch (e) {
+    setState(() {
+      _isLoading = false;
+      _errorMessage = 'Gagal memuat data absensi: $e';
+    });
   }
+}
+
 
   void _applyFilter(String filter, DateTimeRange? range) {
     List<AbsensiModel> tempList = _absensiList;

@@ -483,13 +483,17 @@ Future<void> _checkLocationAndOpenCamera() async {
                   const SizedBox(height: 10),
 
                   // === Tampilkan semua data dari API ===
-                  for (var history in recentHistory)
+                 // === Tampilkan hanya weekday (Senin–Jumat) ===
+                for (var history in recentHistory)
+                  if (_isWeekday(history.tanggal))
                     _buildHistoryCard(
-                        history.tanggal,
-                        history.keterangan,
-                        history.masuk,
-                        history.keluar,
-                        history.status),
+                      history.tanggal,
+                      history.keterangan,
+                      history.masuk,
+                      history.keluar,
+                      history.status,
+                    ),
+
                 ],
               ),
             ),
@@ -556,6 +560,16 @@ Future<void> _checkLocationAndOpenCamera() async {
       ),
     );
   }
+  
+  bool _isWeekday(String tanggal) {
+  try {
+    final date = DateTime.parse(tanggal);
+    return date.weekday >= 1 && date.weekday <= 5; // 1=Senin, 7=Minggu
+  } catch (e) {
+    return true; // kalau parsing gagal, biar tidak error tampilkan saja
+  }
+}
+
 
   // Added method card for choosing absen method (Finger / Face)
   Widget _buildMethodCard(String title, IconData icon, VoidCallback onTap) {
