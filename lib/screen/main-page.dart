@@ -1,10 +1,13 @@
 import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:absensi_pkl_urban/screen/absensi-page.dart';
 import 'package:absensi_pkl_urban/screen/profile-page.dart';
 import 'package:absensi_pkl_urban/navigation/navigation-item.dart';
 import 'package:absensi_pkl_urban/screen/dashboard/dashboard-page.dart';
-import 'package:absensi_pkl_urban/services/api_absensi_services.dart';
+import 'package:absensi_pkl_urban/services/api_service.dart';
+import 'package:absensi_pkl_urban/models/absensipage.dart';
+import 'package:absensi_pkl_urban/models/dashboard_model.dart';
 
 class MainPage extends StatefulWidget {
   final int initialIndex;
@@ -16,45 +19,85 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage> {
   late int _currentIndex;
-  final _service = AbsensiService();
-  List<dynamic> _absensiList = [];
+  final ApiService _apiService = ApiService();
+  List<AbsensiModel> _absensiList = [];
   bool _isLoading = true;
+  String? _userEmail;
 
-  // 🟢 Tambahan: Key agar Dashboard bisa di-refresh otomatis
   final GlobalKey<DashboardPageState> _dashboardKey = GlobalKey<DashboardPageState>();
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
-    _loadAbsensiData();
+    _initUserData();
   }
 
-  Future<void> _loadAbsensiData() async {
-    try {
-      // 🟢 nanti kamu bisa ganti email ini dengan SharedPreferences email login juga
-      final data = await _service.getAbsensiList('destia@gmail.com');
+  Future<void> _initUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final email = prefs.getString('email'); // 🔹 Ambil email login yang tersimpan
+
+    if (email == null) {
+      developer.log('⚠️ Email belum tersimpan di SharedPreferences');
       setState(() {
-        _absensiList = data;
+        _isLoading = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _userEmail = email;
+    });
+
+    await _loadAbsensiData(email);
+  }
+
+  Future<void> _loadAbsensiData(String email) async {
+    try {
+      final DashboardData dashboardData =
+          await _apiService.fetchDashboardData(email);
+
+      final List<AbsensiModel> list = dashboardData.history
+          .map((e) => AbsensiModel.fromJson({
+                'tanggal': e.tanggal,
+                'masuk': e.masuk,
+                'keluar': e.keluar,
+                'status': e.status,
+              }))
+          .toList();
+
+      setState(() {
+        _absensiList = list;
         _isLoading = false;
       });
     } catch (e) {
-      developer.log('Error: $e');
+      developer.log('❌ Error saat load absensi: $e');
       setState(() {
         _isLoading = false;
       });
     }
   }
 
-  // 🟢 Buat daftar halaman (Dashboard pakai UniqueKey supaya reset filter)
-  late final List<Widget> _pages = [
-    const AbsensiPage(),
-    DashboardPage(key: _dashboardKey), // tetap pakai key
-    const ProfilePage(),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_userEmail == null) {
+      return const Scaffold(
+        body: Center(child: Text('Email login tidak ditemukan')),
+      );
+    }
+
+    final List<Widget> _pages = [
+      AbsensiPage(userEmail: _userEmail!), // ✅ email login dikirim ke AbsensiPage
+      DashboardPage(key: _dashboardKey),
+      const ProfilePage(),
+    ];
+
     return Scaffold(
       body: _pages[_currentIndex],
       bottomNavigationBar: CustomBottomNav(
@@ -64,9 +107,8 @@ class _MainPageState extends State<MainPage> {
             _currentIndex = index;
           });
 
-          // 🟢 Jika pindah ke Dashboard, langsung auto refresh data user login
           if (index == 1) {
-            _dashboardKey.currentState?.refreshDashboard(); // 🟢 panggil fungsi asli dari Dashboard
+            _dashboardKey.currentState?.refreshDashboard();
             developer.log("🟢 Dashboard auto refresh ketika tab aktif");
           }
         },

@@ -39,32 +39,66 @@ class _FormSakitState extends State<FormSakit> {
     });
   }
 
-  Future<void> _selectDate(
-      BuildContext context, TextEditingController controller) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2030),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF2196F3),
-              onPrimary: Colors.white,
-              onSurface: Colors.black,
+    // 🟢 Fungsi refresh tanpa ubah desain
+Future<void> _handleRefresh() async {
+  await _loadUserData(); // ambil ulang data user
+  setState(() {
+    _startDateController.clear();
+    _endDateController.clear();
+    _descriptionController.clear();
+  });
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Text('Data berhasil di refresh'),
+      backgroundColor: Colors.blueAccent,
+      duration: Duration(seconds: 2),
+    ),
+  );
+}
+
+  Future<void> _selectDate(BuildContext context, TextEditingController controller) async {
+  final DateTime now = DateTime.now();
+
+  final DateTime? picked = await showDatePicker(
+    context: context,
+    initialDate: now,
+    firstDate: DateTime(now.year, now.month, now.day), // 🔒 tidak bisa pilih sebelum hari ini
+    lastDate: DateTime(2030),
+    helpText: 'Pilih Tanggal Izin',
+    cancelText: 'Batal',
+    confirmText: 'Pilih',
+    builder: (context, child) {
+      return Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.light(
+            primary: Color(0xFF2196F3), // warna utama kalender
+            onPrimary: Colors.white,    // warna teks pada tombol
+            onSurface: Colors.black87,  // warna teks tanggal
+          ),
+          textButtonTheme: TextButtonThemeData(
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFF2196F3), // warna tombol CANCEL & OK
+              textStyle: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
-          child: child!,
-        );
-      },
-    );
-    if (picked != null) {
-      setState(() {
-        controller.text = DateFormat('yyyy-MM-dd').format(picked);
-      });
-    }
+          dialogTheme: DialogTheme(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24), // pojok kalender lebih halus
+            ),
+          ),
+        ),
+        child: child!,
+      );
+    },
+  );
+
+  if (picked != null) {
+    setState(() {
+      controller.text = DateFormat('yyyy-MM-dd').format(picked);
+    });
   }
+}
 
   // 🔹 Kirim data ke API
   Future<void> _handleSubmit() async {
@@ -116,7 +150,7 @@ class _FormSakitState extends State<FormSakit> {
           ),
         );
 
-        Navigator.push(
+        Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const SuccessSubmitPage()),
         );
@@ -188,18 +222,22 @@ class _FormSakitState extends State<FormSakit> {
                       children: [
                         Row(
                           children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(
-                                Icons.refresh,
-                                color: Colors.white,
-                                size: 20,
+                           GestureDetector(
+                              onTap: _handleRefresh, // 🟢 panggil fungsi refresh
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(
+                                  Icons.refresh,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
                               ),
                             ),
+
                             const SizedBox(width: 12),
                           ],
                         ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'package:absensi_pkl_urban/screen/dashboard/dashboard-page.dart';
+import 'package:absensi_pkl_urban/screen/main-page.dart';
 
 class SuccessSubmitPage extends StatefulWidget {
   const SuccessSubmitPage({Key? key}) : super(key: key);
@@ -40,10 +41,13 @@ class _SuccessSubmitPageState extends State<SuccessSubmitPage>
       if (status == AnimationStatus.completed && mounted) {
         Future.delayed(const Duration(milliseconds: 900), () {
           if (mounted) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const DashboardPage()),
-            );
+            Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => MainPage(initialIndex: 1), // 0 = tab dashboard
+                  ),
+                  (route) => false,
+                );
           }
         });
       }
