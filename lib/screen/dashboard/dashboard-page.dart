@@ -1,15 +1,15 @@
-import 'package:absensi_pkl_urban/screen/dashboard/absen-face.dart';
 import 'package:absensi_pkl_urban/screen/login/landing-page.dart';
 import 'package:flutter/material.dart';
 import 'package:absensi_pkl_urban/screen/dashboard/form-izin.dart';
 import 'package:absensi_pkl_urban/screen/dashboard/form-sakit.dart';
 import 'package:absensi_pkl_urban/screen/main-page.dart';
-import 'package:absensi_pkl_urban/screen/dashboard/absen-finger.dart';
 import 'package:absensi_pkl_urban/services/api_service.dart';
 import 'package:absensi_pkl_urban/models/dashboard_model.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:geolocator/geolocator.dart';
+import 'dart:async';
+import 'package:percent_indicator/percent_indicator.dart';
 
 
 class DashboardPage extends StatefulWidget {
@@ -31,7 +31,8 @@ class DashboardPageState extends State<DashboardPage> {
   @override
   void initState() {
     super.initState();
-    _loadUserAndFetchData(); // 🟢 otomatis ambil data user login
+    _loadUserAndFetchData();
+    startWorkTimer(); // 🟢 otomatis ambil data user login + timer
   }
 
   // 🟢 Fungsi ambil email dari local storage dan load data dashboard
@@ -91,138 +92,6 @@ class DashboardPageState extends State<DashboardPage> {
             ),
     );
   }
-          Future<void> _checkLocationAndNavigate() async {
-  try {
-    print("🧭 Tombol Fingerprint ditekan");
-
-    // Pastikan service lokasi aktif
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Layanan lokasi tidak aktif")),
-      );
-      return;
-    }
-
-    // Cek & minta izin lokasi
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Izin lokasi ditolak")),
-        );
-        return;
-      }
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Izin lokasi ditolak permanen, buka pengaturan untuk mengaktifkan.")),
-      );
-      return;
-    }
-
-    // Ambil posisi user
-    Position position = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
-    );
-
-    // Koordinat lokasi kantor (contoh)
-    const double officeLatitude = -6.947776152570353;
-    const double officeLongitude = 107.62715926653917;
-
-    // Hitung jarak dari posisi user ke kantor
-    double distance = Geolocator.distanceBetween(
-      position.latitude,
-      position.longitude,
-      officeLatitude,
-      officeLongitude,
-    );
-
-    print("📍 Lokasi user: ${position.latitude}, ${position.longitude}");
-    print("📏 Jarak ke kantor: ${distance.toStringAsFixed(2)} meter");
-
-    // Jika jarak di bawah 100 meter, boleh lanjut
-    if (distance <= 20) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const AbsenFinger()),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Anda berada di luar area absensi (${distance.toStringAsFixed(1)} m)")),
-      );
-    }
-  } catch (e) {
-    print("❌ Error lokasi: $e");
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Terjadi kesalahan: $e")),
-    );
-  }
-}
-Future<void> _checkLocationAndOpenCamera() async {
-  try {
-    // Pastikan service lokasi aktif
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Layanan lokasi tidak aktif")),
-      );
-      return;
-    }
-
-    // Cek izin lokasi
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Izin lokasi ditolak")),
-        );
-        return;
-      }
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Izin lokasi ditolak permanen")),
-      );
-      return;
-    }
-
-    // Ambil posisi user
-    Position position = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
-    );
-
-    const double officeLatitude = -6.947776152570353;
-    const double officeLongitude = 107.62715926653917;
-
-    double distance = Geolocator.distanceBetween(
-      position.latitude,
-      position.longitude,
-      officeLatitude,
-      officeLongitude,
-    );
-
-    if (distance <= 100) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const AbsenFace()),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Anda berada di luar area absensi (${distance.toStringAsFixed(1)} m)")),
-      );
-    }
-  } catch (e) {
-    print("❌ Error lokasi: $e");
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Terjadi kesalahan: $e")),
-    );
-  }
-}
 
 
 
@@ -391,27 +260,61 @@ Future<void> _checkLocationAndOpenCamera() async {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 25),
 
+                  // === Progress Waktu Kerja ===
+                   const SizedBox(height: 10),
+                  Center(
+                    child: CircularPercentIndicator(
+                      radius: 90.0,
+                      lineWidth: 12.0,
+                      percent: _progress.clamp(0.0, 1.0),
+                      circularStrokeCap: CircularStrokeCap.round,
+                      progressColor: _timerColor, // 🔥 otomatis sesuai sisa waktu
+                      backgroundColor: Colors.grey.shade300,
+                      center: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            _formatDuration(_remainingTime),
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: _timerColor, // 🔥 teks waktu ikut berubah warna juga
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          const Text(
+                            "Sisa Waktu Kerja",
+                            style: TextStyle(fontSize: 14, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 25),
+              
                   // === Metode Absen ===
                   const Text(
-                    'Silahkan Pilih Metode Absen :',
-                    style: TextStyle(fontSize: 14, color: Colors.black54),
-                  ),
-                  const SizedBox(height: 15),
-                  Row(
+                      'Silahkan Lakukan Absensi :',
+                      style: TextStyle(fontSize: 14, color: Colors.black54),
+                    ),
+                    const SizedBox(height: 15),
+                   Row(
                     children: [
                       Expanded(
-                        child:_buildMethodCard('Finger Print', Icons.fingerprint, _checkLocationAndNavigate),
-
+                        child: _buildMethodCard('Absen Sekarang', Icons.access_time, _absenManual),
                       ),
                       const SizedBox(width: 15),
                       Expanded(
-                        child: _buildMethodCard('Face ID', Icons.face, _checkLocationAndOpenCamera),
+                        child: _buildMethodCard('Absen Pulang', Icons.logout, _absenPulang),
                       ),
                     ],
                   ),
+
+
+
 
                   const SizedBox(height: 25),
 
@@ -498,6 +401,231 @@ Future<void> _checkLocationAndOpenCamera() async {
       ],
     );
   }
+  Future<void> _absenManual() async {
+  try {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Layanan lokasi tidak aktif")),
+      );
+      return;
+    }
+
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Izin lokasi ditolak")),
+        );
+        return;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Izin lokasi ditolak permanen")),
+      );
+      return;
+    }
+
+    Position position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+
+    const double officeLatitude = -6.931985511473663;
+    const double officeLongitude = 107.5560453216009;
+
+    double distance = Geolocator.distanceBetween(
+      position.latitude,
+      position.longitude,
+      officeLatitude,
+      officeLongitude,
+    );
+
+    if (distance <= 50) {
+      // ✅ Ambil email user dari SharedPreferences
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? userEmail = prefs.getString('email');
+
+      if (userEmail == null || userEmail.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Email tidak ditemukan, silakan login ulang.")),
+        );
+        return;
+      }
+
+      // ✅ Kirim data ke API
+      final response = await apiService.absenMasukSiswa(userEmail);
+
+      if (response['statusCode'] == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("✅ ${response['msg']}")),
+        );
+
+        // Optional: refresh dashboard biar data update
+        await refreshDashboard();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("❌ ${response['msg'] ?? 'Gagal absen'}")),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Anda di luar area absensi (${distance.toStringAsFixed(1)} m)"),
+        ),
+      );
+    }
+  } catch (e) {
+    print("❌ Error absen manual: $e");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Terjadi kesalahan: $e")),
+    );
+  }
+}
+
+Future<void> _absenPulang() async {
+  try {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Layanan lokasi tidak aktif")),
+      );
+      return;
+    }
+
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Izin lokasi ditolak")),
+        );
+        return;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Izin lokasi ditolak permanen")),
+      );
+      return;
+    }
+
+    Position position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+
+    const double officeLatitude = -6.947776152570353;
+    const double officeLongitude = 107.62715926653917;
+
+    double distance = Geolocator.distanceBetween(
+      position.latitude,
+      position.longitude,
+      officeLatitude,
+      officeLongitude,
+    );
+
+    if (distance <= 50) {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? userEmail = prefs.getString('email');
+
+      if (userEmail == null || userEmail.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Email tidak ditemukan, silakan login ulang.")),
+        );
+        return;
+      }
+
+      final response = await apiService.absenPulangSiswa(userEmail);
+
+      if (response['statusCode'] == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("✅ ${response['msg']}")),
+        );
+        await refreshDashboard();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("❌ ${response['msg'] ?? 'Gagal absen pulang'}")),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Anda di luar area absensi (${distance.toStringAsFixed(1)} m)"),
+        ),
+      );
+    }
+  } catch (e) {
+    print("❌ Error absen pulang: $e");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Terjadi kesalahan: $e")),
+    );
+  }
+}
+
+Timer? _timer;
+Duration _remainingTime = const Duration();
+double _progress = 1.0;
+Color _timerColor = Colors.green; // Warna awal: hijau
+
+void startWorkTimer() {
+  const startHour = 8; // 08:00
+  const endHour = 17;  // 17:00
+  final now = DateTime.now();
+  final startTime = DateTime(now.year, now.month, now.day, startHour);
+  final endTime = DateTime(now.year, now.month, now.day, endHour);
+  final totalDuration = endTime.difference(startTime).inSeconds;
+
+  _timer?.cancel();
+  _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    final current = DateTime.now();
+
+    if (current.isBefore(startTime)) {
+      // Belum jam kerja
+      setState(() {
+        _remainingTime = endTime.difference(startTime);
+        _progress = 1.0;
+        _timerColor = Colors.grey; // Belum mulai
+      });
+      return;
+    }
+
+    if (current.isAfter(endTime)) {
+      // Sudah lewat jam kerja
+      timer.cancel();
+      setState(() {
+        _remainingTime = Duration.zero;
+        _progress = 0.0;
+        _timerColor = Colors.red; // Waktu habis
+      });
+      return;
+    }
+
+    // Hitung sisa waktu
+    final remainingSeconds = endTime.difference(current).inSeconds;
+    final progress = remainingSeconds / totalDuration;
+
+    // Tentukan warna otomatis
+    Color color;
+    if (remainingSeconds > 4 * 3600) {
+      color = Colors.red; // >4 jam → merah
+    } else if (remainingSeconds > 2 * 3600) {
+      color = Colors.yellow; // 2–4 jam → kuning
+    } else {
+      color = Colors.green; // <2 jam → hijau
+    }
+
+    setState(() {
+      _remainingTime = Duration(seconds: remainingSeconds);
+      _progress = progress;
+      _timerColor = color;
+    });
+  });
+}
+
+
 
   // ==== COMPONENTS ====
 
@@ -729,4 +857,11 @@ Future<void> _checkLocationAndOpenCamera() async {
       ),
     );
   }
+}
+String _formatDuration(Duration duration) {
+  String twoDigits(int n) => n.toString().padLeft(2, "0");
+  final hours = twoDigits(duration.inHours);
+  final minutes = twoDigits(duration.inMinutes.remainder(60));
+  final seconds = twoDigits(duration.inSeconds.remainder(60));
+  return "$hours:$minutes:$seconds";
 }

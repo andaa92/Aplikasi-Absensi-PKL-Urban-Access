@@ -17,6 +17,7 @@ class _AbsenFaceState extends State<AbsenFace> {
   bool _isDetecting = false;
   bool _faceDetected = false;
   int _faceDetectedCount = 0;
+  int _frameCount = 0; // untuk skip frame
 
   @override
   void initState() {
@@ -40,30 +41,34 @@ class _AbsenFaceState extends State<AbsenFace> {
 
     _controller = CameraController(
       frontCamera,
-      ResolutionPreset.high,
+      ResolutionPreset.medium, // ✅ lebih ringan dari high
       enableAudio: false,
     );
 
     await _controller!.initialize();
-    _controller!.startImageStream(_processImage);
+    await _controller!.startImageStream(_processImage);
 
     if (mounted) setState(() {});
   }
 
   Future<void> _processImage(CameraImage image) async {
     if (_isDetecting) return;
+    _frameCount++;
+
+    // ✅ deteksi hanya tiap 3 frame untuk kurangi beban CPU
+    if (_frameCount % 3 != 0) return;
+
     _isDetecting = true;
 
     try {
-              final bytesBuilder = BytesBuilder();
-        for (final Plane plane in image.planes) {
-          bytesBuilder.add(plane.bytes);
-        }
-        final bytes = bytesBuilder.toBytes();
+      final bytesBuilder = BytesBuilder();
+      for (final Plane plane in image.planes) {
+        bytesBuilder.add(plane.bytes);
+      }
+      final bytes = bytesBuilder.toBytes();
 
-      final camera = _controller!.description;
       final rotation =
-          InputImageRotationValue.fromRawValue(camera.sensorOrientation) ??
+          InputImageRotationValue.fromRawValue(_controller!.description.sensorOrientation) ??
               InputImageRotation.rotation0deg;
 
       final format =
@@ -80,16 +85,21 @@ class _AbsenFaceState extends State<AbsenFace> {
       final inputImage = InputImage.fromBytes(bytes: bytes, metadata: metadata);
       final faces = await _faceDetector.processImage(inputImage);
 
-      setState(() {
-        _faceDetected = faces.isNotEmpty;
-        if (_faceDetected) {
-          _faceDetectedCount++;
-        } else {
-          _faceDetectedCount = 0;
-        }
-      });
+      // ✅ jangan panggil setState terus menerus (cek perubahan dulu)
+      final faceDetectedNow = faces.isNotEmpty;
+      if (faceDetectedNow != _faceDetected) {
+        setState(() {
+          _faceDetected = faceDetectedNow;
+        });
+      }
 
-      // Jika wajah stabil terdeteksi 10 kali (±2 detik)
+      if (faceDetectedNow) {
+        _faceDetectedCount++;
+      } else {
+        _faceDetectedCount = 0;
+      }
+
+      // ✅ Jika wajah stabil 10 frame
       if (_faceDetectedCount >= 10) {
         await _controller?.stopImageStream();
         await _controller?.dispose();
@@ -97,11 +107,8 @@ class _AbsenFaceState extends State<AbsenFace> {
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("✅ Wajah terverifikasi, absen berhasil!"),
-            ),
+            const SnackBar(content: Text("✅ Wajah terverifikasi, absen berhasil!")),
           );
-
           Future.delayed(const Duration(seconds: 1), () {
             Navigator.pop(context);
           });
@@ -127,7 +134,7 @@ class _AbsenFaceState extends State<AbsenFace> {
       backgroundColor: Colors.white,
       body: Column(
         children: [
-          // Header biru dengan efek lingkaran
+          // Header biru
           Stack(
             children: [
               Container(
@@ -136,50 +143,18 @@ class _AbsenFaceState extends State<AbsenFace> {
                 child: Stack(
                   alignment: Alignment.topCenter,
                   children: [
-                    Positioned(
-                      top: -150,
-                      child: Container(
-                        width: 600,
-                        height: 600,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: const Color(0xFF1976D2).withOpacity(0.4),
+                    for (var i = 0; i < 4; i++)
+                      Positioned(
+                        top: -150 + (i * 30),
+                        child: Container(
+                          width: 600 - (i * 100),
+                          height: 600 - (i * 100),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.blue[(700 - (i * 100))]!.withOpacity(0.5),
+                          ),
                         ),
                       ),
-                    ),
-                    Positioned(
-                      top: -120,
-                      child: Container(
-                        width: 500,
-                        height: 500,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: const Color(0xFF1E88E5).withOpacity(0.5),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      top: -90,
-                      child: Container(
-                        width: 400,
-                        height: 400,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: const Color(0xFF42A5F5).withOpacity(0.6),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      top: -60,
-                      child: Container(
-                        width: 300,
-                        height: 300,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: const Color(0xFF64B5F6).withOpacity(0.7),
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -234,10 +209,10 @@ class _AbsenFaceState extends State<AbsenFace> {
                       ),
                       const SizedBox(height: 30),
 
-                      // 🔥 Area kamera proporsional
+                      // Kamera Preview
                       Container(
                         width: double.infinity,
-                        height: MediaQuery.of(context).size.height * 0.5,
+                        height: MediaQuery.of(context).size.height * 0.45,
                         margin: const EdgeInsets.symmetric(horizontal: 16),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF5F5F5),
@@ -252,23 +227,16 @@ class _AbsenFaceState extends State<AbsenFace> {
                             ? const Center(child: CircularProgressIndicator())
                             : ClipRRect(
                                 borderRadius: BorderRadius.circular(20),
-                                child: LayoutBuilder(
-                                  builder: (context, constraints) {
-                                    final screenRatio = constraints.maxWidth /
-                                        constraints.maxHeight;
-                                    final cameraRatio =
-                                        _controller!.value.aspectRatio;
-                                    final scale = cameraRatio / screenRatio;
-
-                                    return Transform.scale(
-                                      scale: scale,
-                                      alignment: Alignment.center,
-                                      child: AspectRatio(
-                                        aspectRatio: cameraRatio,
-                                        child: CameraPreview(_controller!),
-                                      ),
-                                    );
-                                  },
+                                child: AspectRatio(
+                                  aspectRatio: _controller!.value.aspectRatio,
+                                  child: FittedBox(
+                                    fit: BoxFit.cover, // ✅ agar tidak ngezoom
+                                    child: SizedBox(
+                                      width: _controller!.value.previewSize!.height,
+                                      height: _controller!.value.previewSize!.width,
+                                      child: CameraPreview(_controller!),
+                                    ),
+                                  ),
                                 ),
                               ),
                       ),
