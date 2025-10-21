@@ -362,7 +362,7 @@ void _applyFilter(String filter, DateTimeRange? range) async {
         Text(
           now,
           style: const TextStyle(
-            color: Colors.white70,
+            color: Color.fromARGB(255, 255, 255, 255),
             fontSize: 16,
           ),
         ),
@@ -376,6 +376,7 @@ void _applyFilter(String filter, DateTimeRange? range) async {
     return Card(
   margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
   elevation: 3,
+  color: Colors.white,
   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
   child: Padding(
     padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
