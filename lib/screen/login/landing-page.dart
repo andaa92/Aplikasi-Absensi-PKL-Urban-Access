@@ -79,7 +79,7 @@ class _LandingPageState extends State<LandingPage>
     _startAnimations();
 
     // Delay 4 detik sebelum pindah ke LoginPage
-    Future.delayed(const Duration(seconds: 4), () {
+    Future.delayed(const Duration(seconds: 5), () {
       if (mounted) {
         Navigator.pushReplacementNamed(context, '/login');
       }
