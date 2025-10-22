@@ -56,13 +56,11 @@ class _LoginPageState extends State<LoginPage> {
         deviceId = iosInfo.identifierForVendor ?? 'ios_unknown';
       }
     } catch (e) {
-      print('⚠️ Gagal mendapatkan device ID: $e');
+      print('Gagal mendapatkan device ID: $e');
     }
-    print('🔍 Device ID: $deviceId');
     return deviceId;
   }
 
-  /// 🔹 LOGIN UTAMA (dari file pertama)
   Future<void> _login() async {
     String email = _emailController.text.trim();
     String password = _passwordController.text.trim();
@@ -90,61 +88,21 @@ class _LoginPageState extends State<LoginPage> {
         }),
       );
 
-      print('Response body: ${response.body}');
       var data = jsonDecode(response.body);
 
       if (response.statusCode == 200 && data['statusCode'] == 200) {
         SharedPreferences prefs = await SharedPreferences.getInstance();
-
         await prefs.setString('email', data['email'] ?? email);
         await prefs.setString('id_device', data['id_device'] ?? deviceId);
         await prefs.setString('token', data['token'] ?? '');
 
-        final emailUser = data['email'];
-        if (emailUser == null || emailUser.isEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Login gagal: Email user kosong")),
-          );
-          return;
-        }
-
-        // 🔹 Ambil profile siswa
-        try {
-          final profileResponse = await http.get(
-            Uri.parse(
-              'https://hr.urbanaccess.net/api/profile-siswa?userPkl=$emailUser',
-            ),
-            headers: {'Accept': 'application/json'},
-          );
-
-          print("📡 Response Profile: ${profileResponse.body}");
-
-          if (profileResponse.statusCode == 200) {
-            final profileData = jsonDecode(profileResponse.body);
-            final siswa = profileData['data'];
-
-            if (siswa != null) {
-              await prefs.setString('nama', siswa['nama_siswa'] ?? '');
-              await prefs.setString('nsm', siswa['nsm'] ?? '');
-              await prefs.setString('sekolah', siswa['nama_sekolah'] ?? '');
-              await prefs.setString('jurusan', siswa['nama_jurusan'] ?? '');
-              await prefs.setString('userPkl', emailUser);
-              print("✅ Profil siswa tersimpan: ${siswa['nama_siswa']}");
-            } else {
-              print("⚠️ Data siswa kosong di API profile-siswa");
-            }
-          }
-        } catch (e) {
-          print("⚠️ Error ambil data profile-siswa: $e");
-        }
+        setState(() {
+          _hasLoggedInBefore = true;
+        });
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(data['msg'] ?? "Login berhasil")),
         );
-
-        setState(() {
-          _hasLoggedInBefore = true;
-        });
 
         Navigator.pushReplacementNamed(context, '/main');
       } else {
@@ -153,14 +111,12 @@ class _LoginPageState extends State<LoginPage> {
         ).showSnackBar(SnackBar(content: Text(data['msg'] ?? "Login gagal")));
       }
     } catch (e) {
-      print("❌ Error Login: $e");
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text("Terjadi kesalahan: $e")));
     }
   }
 
-  // ✅ Logika login cepat (biometrik + validasi device)
   Future<void> _loginCepat() async {
     try {
       bool didAuthenticate = await _auth.authenticate(
@@ -170,6 +126,7 @@ class _LoginPageState extends State<LoginPage> {
                 : 'Gunakan sidik jari untuk login cepat',
         options: const AuthenticationOptions(biometricOnly: true),
       );
+
       if (didAuthenticate) {
         SharedPreferences prefs = await SharedPreferences.getInstance();
         final savedEmail = prefs.getString('email');
@@ -382,7 +339,6 @@ class _LoginPageState extends State<LoginPage> {
       backgroundColor: Colors.white,
       body: Column(
         children: [
-          // Header biru gradient (tidak diubah)
           Container(
             height: 180,
             decoration: const BoxDecoration(
@@ -392,49 +348,7 @@ class _LoginPageState extends State<LoginPage> {
                 colors: [Color(0xFF1E90FF), Color(0xFF00BFFF)],
               ),
             ),
-            child: Stack(
-              children: [
-                Positioned(
-                  left: MediaQuery.of(context).size.width / 2 - 180,
-                  top: -120,
-                  child: Container(
-                    width: 360,
-                    height: 360,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withOpacity(0.12),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  left: -80,
-                  top: -20,
-                  child: Container(
-                    width: 200,
-                    height: 200,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withOpacity(0.08),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  right: -40,
-                  top: 40,
-                  child: Container(
-                    width: 140,
-                    height: 140,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withOpacity(0.1),
-                    ),
-                  ),
-                ),
-              ],
-            ),
           ),
-
-          // Isi body (tetap sama)
           Expanded(
             child: Container(
               decoration: const BoxDecoration(
@@ -450,14 +364,9 @@ class _LoginPageState extends State<LoginPage> {
                 child: Column(
                   children: [
                     const SizedBox(height: 35),
-                    Container(
-                      height: 60,
-                      child: Image.asset(
-                        'assets/medima.jpeg',
-                        width: MediaQuery.of(context).size.width * 0.35,
-                        height: MediaQuery.of(context).size.width * 0.35,
-                        fit: BoxFit.cover,
-                      ),
+                    Image.asset(
+                      'assets/medima.jpeg',
+                      width: MediaQuery.of(context).size.width * 0.35,
                     ),
                     const SizedBox(height: 35),
                     const Text(
@@ -471,15 +380,9 @@ class _LoginPageState extends State<LoginPage> {
                     const SizedBox(height: 6),
                     const Text(
                       'Silahkan login untuk akun Anda',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey,
-                        fontWeight: FontWeight.w400,
-                      ),
+                      style: TextStyle(fontSize: 13, color: Colors.grey),
                     ),
                     const SizedBox(height: 32),
-
-                    // 🔹 Field email & password (tidak diubah)
                     _buildTextField(
                       'Email',
                       Icons.email_outlined,
@@ -487,10 +390,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     const SizedBox(height: 22),
                     _buildPasswordField(),
-
                     const SizedBox(height: 35),
-
-                    // Tombol login utama
                     SizedBox(
                       width: double.infinity,
                       height: 52,
@@ -501,39 +401,55 @@ class _LoginPageState extends State<LoginPage> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(30),
                           ),
-                          elevation: 0,
                         ),
                         child: const Text(
                           'Login',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: Colors.white,
                           ),
                         ),
                       ),
                     ),
-
-                    // ✅ Tampilkan login cepat hanya jika pernah login
-                    if (_hasLoggedInBefore) ...[
-                      const SizedBox(height: 18),
+                    if (_hasLoggedInBefore && _selectedBiometric == null) ...[
+                      const SizedBox(height: 20),
+                      ElevatedButton.icon(
+                        onPressed: _pilihMetodeBiometrik,
+                        icon: const Icon(
+                          Icons.fingerprint,
+                          color: Colors.white,
+                        ),
+                        label: const Text(
+                          "Pilih Metode Login Cepat",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.cyan,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(25),
+                          ),
+                        ),
+                      ),
+                    ],
+                    if (_selectedBiometric != null) ...[
+                      const SizedBox(height: 22),
                       const Text(
                         'Login dengan cara cepat',
                         style: TextStyle(fontSize: 11, color: Colors.grey),
                       ),
-                      const SizedBox(height: 22),
+                      const SizedBox(height: 18),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           _buildQuickLoginButton(
-                            icon: Icons.fingerprint,
-                            label: 'Finger Print',
-                            onTap: _loginCepat,
-                          ),
-                          const SizedBox(width: 45),
-                          _buildQuickLoginButton(
-                            icon: Icons.face,
-                            label: 'Face ID',
+                            icon:
+                                _selectedBiometric == BiometricType.face
+                                    ? Icons.face
+                                    : Icons.fingerprint,
+                            label:
+                                _selectedBiometric == BiometricType.face
+                                    ? 'Face ID'
+                                    : 'Fingerprint',
                             onTap: _loginCepat,
                           ),
                         ],
@@ -565,7 +481,6 @@ class _LoginPageState extends State<LoginPage> {
         controller: controller,
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
           prefixIcon: Icon(icon, color: Colors.grey.shade500, size: 22),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(30),
@@ -594,7 +509,6 @@ class _LoginPageState extends State<LoginPage> {
         obscureText: !_isPasswordVisible,
         decoration: InputDecoration(
           hintText: 'Password',
-          hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
           prefixIcon: Icon(
             Icons.lock_outline,
             color: Colors.grey.shade500,
@@ -605,6 +519,8 @@ class _LoginPageState extends State<LoginPage> {
               _isPasswordVisible
                   ? Icons.visibility_outlined
                   : Icons.visibility_off_outlined,
+              color: Colors.grey.shade500,
+              size: 22,
             ),
             onPressed:
                 () => setState(() => _isPasswordVisible = !_isPasswordVisible),
