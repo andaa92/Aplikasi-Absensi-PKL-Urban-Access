@@ -593,9 +593,10 @@ void startWorkTimer() async {
   final endTime = DateTime(ntpTime.year, ntpTime.month, ntpTime.day, endHour);
   final totalDuration = endTime.difference(startTime).inSeconds;
 
-  _timer?.cancel();
+  _timer?.cancel(); // hentikan timer lama sebelum buat baru
 
-  // 🟢 Update UI sekali di awal
+  // 🔹 Update awal sekali
+  if (!mounted) return;
   setState(() {
     DateTime current = DateTime.now().add(offset);
     final remainingSeconds = endTime.difference(current).inSeconds;
@@ -608,8 +609,10 @@ void startWorkTimer() async {
             : Colors.red;
   });
 
-  // 🕐 Timer setiap detik
+  // 🔁 Timer setiap detik
   _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    if (!mounted) return; // Cegah update kalau widget sudah dispose
+
     DateTime current = DateTime.now().add(offset);
 
     if (current.isBefore(startTime)) {
@@ -649,6 +652,14 @@ void startWorkTimer() async {
       _timerColor = color;
     });
   });
+}
+
+// 🧹 Tambahkan ini di dalam State class (bukan di luar)
+@override
+void dispose() {
+  _timer?.cancel(); // pastikan timer berhenti saat halaman ditutup
+  _timer = null;
+  super.dispose();
 }
 
 
