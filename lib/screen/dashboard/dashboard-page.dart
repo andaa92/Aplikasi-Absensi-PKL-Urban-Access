@@ -497,14 +497,10 @@ class DashboardPageState extends State<DashboardPage> {
       final response = await apiService.absenMasukSiswa(userEmail);
 
       if (response['statusCode'] == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("✅ ${response['msg']}")),
-        );
+       showSuccessPopup(context, response['msg']);
         await refreshDashboard();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("❌ ${response['msg'] ?? 'Gagal absen'}")),
-        );
+        showErrorPopup(context, response['msg'] ?? 'Gagal absen pulang');
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -518,6 +514,7 @@ class DashboardPageState extends State<DashboardPage> {
     );
   }
 }
+
 
 
 
@@ -582,14 +579,12 @@ Future<void> _absenPulang() async {
       final response = await apiService.absenPulangSiswa(userEmail);
 
       if (response['statusCode'] == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("✅ ${response['msg']}")),
-        );
+       showSuccessPopup(context, response['msg']);
+      
+
         await refreshDashboard();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("❌ ${response['msg'] ?? 'Gagal absen pulang'}")),
-        );
+        showErrorPopup(context, response['msg'] ?? 'Gagal absen pulang');
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -689,6 +684,11 @@ void startWorkTimer() async {
   });
 }
 
+
+
+
+
+
 // 🧹 Tambahkan ini di dalam State class (bukan di luar)
 @override
 void dispose() {
@@ -696,6 +696,8 @@ void dispose() {
   _timer = null;
   super.dispose();
 }
+
+
 
 
 
@@ -948,4 +950,533 @@ String _formatDuration(Duration duration) {
   final minutes = twoDigits(duration.inMinutes.remainder(60));
   final seconds = twoDigits(duration.inSeconds.remainder(60));
   return "$hours:$minutes:$seconds";
+}
+
+void showSuccessPopup(BuildContext context, String message) {
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    barrierColor: Colors.black.withOpacity(0.7),
+    builder: (context) => _SuccessPopup(message: message),
+  );
+}
+
+
+class _SuccessPopup extends StatefulWidget {
+  final String message;
+  
+  const _SuccessPopup({required this.message});
+
+  @override
+  State<_SuccessPopup> createState() => _SuccessPopupState();
+}
+
+class _SuccessPopupState extends State<_SuccessPopup>
+    with TickerProviderStateMixin {
+  late AnimationController _scaleController;
+  late AnimationController _checkController;
+  late AnimationController _rippleController;
+  late AnimationController _fadeController;
+  
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _fadeAnimation;
+  late Animation<double> _rippleAnimation;
+  late Animation<double> _checkAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    
+    // Controller untuk scale popup
+    _scaleController = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+
+    // Controller untuk checkmark
+    _checkController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+
+    // Controller untuk ripple effect
+    _rippleController = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    );
+
+    // Controller untuk fade out
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+
+    _scaleAnimation = CurvedAnimation(
+      parent: _scaleController,
+      curve: Curves.elasticOut,
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _scaleController,
+        curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
+      ),
+    );
+
+    _rippleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _rippleController,
+        curve: Curves.easeOut,
+      ),
+    );
+
+    _checkAnimation = CurvedAnimation(
+      parent: _checkController,
+      curve: Curves.elasticOut,
+    );
+
+    // Sequence animasi
+    _scaleController.forward();
+    
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (mounted) {
+        _checkController.forward();
+        _rippleController.forward();
+      }
+    });
+
+    // Auto close setelah 1.5 detik
+    Future.delayed(const Duration(milliseconds: 1500), () async {
+      if (mounted) {
+        await _fadeController.reverse(from: 1.0);
+        if (mounted) Navigator.of(context).pop();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _scaleController.dispose();
+    _checkController.dispose();
+    _rippleController.dispose();
+    _fadeController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: ScaleTransition(
+        scale: _scaleAnimation,
+        child: Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: Container(
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF4FC3F7), Color(0xFF29B6F6)],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF29B6F6).withOpacity(0.4),
+                  blurRadius: 30,
+                  spreadRadius: 5,
+                  offset: const Offset(0, 15),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Icon Success dengan animasi dan ripple effect
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Ripple effect luar (besar)
+                    AnimatedBuilder(
+                      animation: _rippleAnimation,
+                      builder: (context, child) {
+                        return Container(
+                          width: 100 + (_rippleAnimation.value * 60),
+                          height: 100 + (_rippleAnimation.value * 60),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white.withOpacity(
+                              0.2 * (1 - _rippleAnimation.value),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    // Ripple effect tengah
+                    AnimatedBuilder(
+                      animation: _rippleAnimation,
+                      builder: (context, child) {
+                        return Container(
+                          width: 100 + (_rippleAnimation.value * 40),
+                          height: 100 + (_rippleAnimation.value * 40),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white.withOpacity(
+                              0.3 * (1 - _rippleAnimation.value),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    // Circle background putih
+                    Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 15,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Animated checkmark
+                    AnimatedBuilder(
+                      animation: _checkAnimation,
+                      builder: (context, child) {
+                        return Transform.scale(
+                          scale: _checkAnimation.value,
+                          child: Transform.rotate(
+                            angle: (1 - _checkAnimation.value) * 0.5,
+                            child: Icon(
+                              Icons.check_circle_rounded,
+                              size: 70,
+                              color: const Color(0xFF29B6F6),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 28),
+                
+                // Text sukses
+                Text(
+                  'Berhasil!',
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    letterSpacing: 0.5,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                
+                // Message
+                Text(
+                  widget.message,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white.withOpacity(0.95),
+                    height: 1.5,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+
+void showErrorPopup(BuildContext context, String message) {
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    barrierColor: Colors.black.withOpacity(0.7),
+    builder: (context) => _ErrorPopup(message: message),
+  );
+}
+
+
+class _ErrorPopup extends StatefulWidget {
+  final String message;
+  
+  const _ErrorPopup({required this.message});
+
+  @override
+  State<_ErrorPopup> createState() => _ErrorPopupState();
+}
+
+class _ErrorPopupState extends State<_ErrorPopup>
+    with TickerProviderStateMixin {
+  late AnimationController _scaleController;
+  late AnimationController _iconController;
+  late AnimationController _rippleController;
+  late AnimationController _fadeController;
+  late AnimationController _shakeController;
+  
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _fadeAnimation;
+  late Animation<double> _rippleAnimation;
+  late Animation<double> _iconAnimation;
+  late Animation<double> _shakeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    
+    // Controller untuk scale popup
+    _scaleController = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+
+    // Controller untuk icon X
+    _iconController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+
+    // Controller untuk ripple effect
+    _rippleController = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    );
+
+    // Controller untuk fade out
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+
+    // Controller untuk shake effect
+    _shakeController = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+
+    _scaleAnimation = CurvedAnimation(
+      parent: _scaleController,
+      curve: Curves.elasticOut,
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _scaleController,
+        curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
+      ),
+    );
+
+    _rippleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _rippleController,
+        curve: Curves.easeOut,
+      ),
+    );
+
+    _iconAnimation = CurvedAnimation(
+      parent: _iconController,
+      curve: Curves.elasticOut,
+    );
+
+    _shakeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _shakeController,
+        curve: Curves.elasticInOut,
+      ),
+    );
+
+    // Sequence animasi
+    _scaleController.forward();
+    
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (mounted) {
+        _iconController.forward();
+        _rippleController.forward();
+        _shakeController.forward();
+      }
+    });
+
+    // Auto close setelah 2.5 detik
+    Future.delayed(const Duration(milliseconds: 1500), () async {
+      if (mounted) {
+        await _fadeController.reverse(from: 1.0);
+        if (mounted) Navigator.of(context).pop();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _scaleController.dispose();
+    _iconController.dispose();
+    _rippleController.dispose();
+    _fadeController.dispose();
+    _shakeController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: ScaleTransition(
+        scale: _scaleAnimation,
+        child: Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: AnimatedBuilder(
+            animation: _shakeAnimation,
+            builder: (context, child) {
+              // Shake effect
+              double shake = 0;
+              if (_shakeAnimation.value < 0.5) {
+                shake = _shakeAnimation.value * 20 - 5;
+              } else {
+                shake = (1 - _shakeAnimation.value) * 20 - 5;
+              }
+              
+              return Transform.translate(
+                offset: Offset(shake * 0.3, 0),
+                child: child,
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFEF5350), Color(0xFFE53935)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFE53935).withOpacity(0.4),
+                    blurRadius: 30,
+                    spreadRadius: 5,
+                    offset: const Offset(0, 15),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Icon Error dengan animasi dan ripple effect
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Ripple effect luar (besar)
+                      AnimatedBuilder(
+                        animation: _rippleAnimation,
+                        builder: (context, child) {
+                          return Container(
+                            width: 100 + (_rippleAnimation.value * 60),
+                            height: 100 + (_rippleAnimation.value * 60),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.white.withOpacity(
+                                0.2 * (1 - _rippleAnimation.value),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      // Ripple effect tengah
+                      AnimatedBuilder(
+                        animation: _rippleAnimation,
+                        builder: (context, child) {
+                          return Container(
+                            width: 100 + (_rippleAnimation.value * 40),
+                            height: 100 + (_rippleAnimation.value * 40),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.white.withOpacity(
+                                0.3 * (1 - _rippleAnimation.value),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      // Circle background putih
+                      Container(
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 15,
+                              offset: const Offset(0, 5),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Animated X icon
+                      AnimatedBuilder(
+                        animation: _iconAnimation,
+                        builder: (context, child) {
+                          return Transform.scale(
+                            scale: _iconAnimation.value,
+                            child: Transform.rotate(
+                              angle: (1 - _iconAnimation.value) * 0.5,
+                              child: Icon(
+                                Icons.cancel_rounded,
+                                size: 70,
+                                color: const Color(0xFFE53935),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 28),
+                  
+                  // Text gagal
+                  Text(
+                    'Gagal!',
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      letterSpacing: 0.5,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  
+                  // Message
+                  Text(
+                    widget.message,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white.withOpacity(0.95),
+                      height: 1.5,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

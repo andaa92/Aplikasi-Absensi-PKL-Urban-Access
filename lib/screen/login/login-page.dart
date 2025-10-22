@@ -56,7 +56,7 @@ class _LoginPageState extends State<LoginPage> {
         deviceId = iosInfo.identifierForVendor ?? 'ios_unknown';
       }
     } catch (e) {
-      print('⚠️ Gagal mendapatkan device ID: $e');
+      print('⚠ Gagal mendapatkan device ID: $e');
     }
     print('🔍 Device ID: $deviceId');
     return deviceId;
@@ -131,11 +131,11 @@ class _LoginPageState extends State<LoginPage> {
               await prefs.setString('userPkl', emailUser);
               print("✅ Profil siswa tersimpan: ${siswa['nama_siswa']}");
             } else {
-              print("⚠️ Data siswa kosong di API profile-siswa");
+              print("⚠ Data siswa kosong di API profile-siswa");
             }
           }
         } catch (e) {
-          print("⚠️ Error ambil data profile-siswa: $e");
+          print("⚠ Error ambil data profile-siswa: $e");
         }
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -170,7 +170,6 @@ class _LoginPageState extends State<LoginPage> {
                 : 'Gunakan sidik jari untuk login cepat',
         options: const AuthenticationOptions(biometricOnly: true),
       );
-
       if (didAuthenticate) {
         SharedPreferences prefs = await SharedPreferences.getInstance();
         final savedEmail = prefs.getString('email');
