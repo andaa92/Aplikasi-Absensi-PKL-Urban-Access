@@ -1,6 +1,7 @@
 import 'package:absensi_pkl_urban/screen/login/landing-page.dart';
 import 'package:flutter/material.dart';
 import 'package:absensi_pkl_urban/screen/dashboard/form-izin.dart';
+import 'package:absensi_pkl_urban/screen/dashboard/fake_location_dialog.dart';
 import 'package:absensi_pkl_urban/screen/dashboard/form-sakit.dart';
 import 'package:absensi_pkl_urban/screen/main-page.dart';
 import 'package:absensi_pkl_urban/services/api_service.dart';
@@ -306,6 +307,7 @@ class DashboardPageState extends State<DashboardPage> {
                     children: [
                       Expanded(
                         child: _buildMethodCard('Absen Sekarang', Icons.access_time, _absenManual),
+                        
                       ),
                       const SizedBox(width: 15),
                       Expanded(
@@ -406,8 +408,40 @@ class DashboardPageState extends State<DashboardPage> {
       ],
     );
   }
-  Future<void> _absenManual() async {
+
+  Future<bool> checkFakeLocation(BuildContext context) async {
   try {
+    final position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+
+    if (position.isMocked) {
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) {
+          return const FakeLocationDialog(); // gunakan ini
+        },
+      );
+      return true;
+    }
+    return false;
+  } catch (e) {
+    debugPrint('❌ Error saat deteksi lokasi palsu: $e');
+    return false;
+  }
+}
+
+
+
+
+
+ Future<void> _absenManual() async {
+  try {
+    // 🛑 Cek fake GPS sebelum lanjut
+    bool isFake = await checkFakeLocation(context);
+    if (isFake) return;
+
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -434,12 +468,13 @@ class DashboardPageState extends State<DashboardPage> {
       return;
     }
 
+    // ✅ Ambil posisi setelah lolos pengecekan
     Position position = await Geolocator.getCurrentPosition(
       desiredAccuracy: LocationAccuracy.high,
     );
 
-    const double officeLatitude = -6.931985511473663;
-    const double officeLongitude = 107.5560453216009;
+    const double officeLatitude = -6.947716562093121;
+    const double officeLongitude = 107.6271448595231;
 
     double distance = Geolocator.distanceBetween(
       position.latitude,
@@ -449,7 +484,6 @@ class DashboardPageState extends State<DashboardPage> {
     );
 
     if (distance <= 50) {
-      // ✅ Ambil email user dari SharedPreferences
       SharedPreferences prefs = await SharedPreferences.getInstance();
       String? userEmail = prefs.getString('email');
 
@@ -460,15 +494,12 @@ class DashboardPageState extends State<DashboardPage> {
         return;
       }
 
-      // ✅ Kirim data ke API
       final response = await apiService.absenMasukSiswa(userEmail);
 
       if (response['statusCode'] == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("✅ ${response['msg']}")),
         );
-
-        // Optional: refresh dashboard biar data update
         await refreshDashboard();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -477,9 +508,7 @@ class DashboardPageState extends State<DashboardPage> {
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Anda di luar area absensi (${distance.toStringAsFixed(1)} m)"),
-        ),
+        SnackBar(content: Text("Anda di luar area absensi (${distance.toStringAsFixed(1)} m)")),
       );
     }
   } catch (e) {
@@ -490,8 +519,15 @@ class DashboardPageState extends State<DashboardPage> {
   }
 }
 
+
+
+
 Future<void> _absenPulang() async {
   try {
+    // 🛑 Cek fake GPS sebelum lanjut
+    bool isFake = await checkFakeLocation(context);
+    if (isFake) return;
+
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -522,8 +558,8 @@ Future<void> _absenPulang() async {
       desiredAccuracy: LocationAccuracy.high,
     );
 
-    const double officeLatitude = -6.947776152570353;
-    const double officeLongitude = 107.62715926653917;
+    const double officeLatitude = -6.947716562093121;
+    const double officeLongitude = 107.6271448595231;
 
     double distance = Geolocator.distanceBetween(
       position.latitude,
@@ -557,9 +593,7 @@ Future<void> _absenPulang() async {
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Anda di luar area absensi (${distance.toStringAsFixed(1)} m)"),
-        ),
+        SnackBar(content: Text("Anda di luar area absensi (${distance.toStringAsFixed(1)} m)")),
       );
     }
   } catch (e) {
@@ -569,6 +603,7 @@ Future<void> _absenPulang() async {
     );
   }
 }
+
 
 Timer? _timer;
 Duration _remainingTime = Duration.zero;
