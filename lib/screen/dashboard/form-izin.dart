@@ -81,7 +81,7 @@ Future<void> _handleRefresh() async {
               textStyle: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
-          dialogTheme: DialogTheme(
+          dialogTheme: DialogThemeData(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(24), // pojok kalender lebih halus
             ),

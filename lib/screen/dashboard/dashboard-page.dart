@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:async';
 import 'package:percent_indicator/percent_indicator.dart';
+import 'package:ntp/ntp.dart';
 
 
 class DashboardPage extends StatefulWidget {
@@ -570,55 +571,76 @@ Future<void> _absenPulang() async {
 }
 
 Timer? _timer;
-Duration _remainingTime = const Duration();
+Duration _remainingTime = Duration.zero;
 double _progress = 1.0;
 Color _timerColor = Colors.green; // Warna awal: hijau
 
-void startWorkTimer() {
-  const startHour = 8; // 08:00
-  const endHour = 17;  // 17:00
-  final now = DateTime.now();
-  final startTime = DateTime(now.year, now.month, now.day, startHour);
-  final endTime = DateTime(now.year, now.month, now.day, endHour);
+void startWorkTimer() async {
+  const startHour = 8;
+  const endHour = 17;
+
+  DateTime ntpTime;
+  try {
+    ntpTime = await NTP.now();
+  } catch (e) {
+    ntpTime = DateTime.now(); // fallback kalau gagal
+  }
+
+  DateTime localTime = DateTime.now();
+  Duration offset = ntpTime.difference(localTime);
+
+  final startTime = DateTime(ntpTime.year, ntpTime.month, ntpTime.day, startHour);
+  final endTime = DateTime(ntpTime.year, ntpTime.month, ntpTime.day, endHour);
   final totalDuration = endTime.difference(startTime).inSeconds;
 
   _timer?.cancel();
+
+  // 🟢 Update UI sekali di awal
+  setState(() {
+    DateTime current = DateTime.now().add(offset);
+    final remainingSeconds = endTime.difference(current).inSeconds;
+    _remainingTime = Duration(seconds: remainingSeconds.clamp(0, totalDuration));
+    _progress = remainingSeconds > 0 ? remainingSeconds / totalDuration : 0;
+    _timerColor = remainingSeconds > 4 * 3600
+        ? Colors.green
+        : remainingSeconds > 2 * 3600
+            ? Colors.yellow
+            : Colors.red;
+  });
+
+  // 🕐 Timer setiap detik
   _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-    final current = DateTime.now();
+    DateTime current = DateTime.now().add(offset);
 
     if (current.isBefore(startTime)) {
-      // Belum jam kerja
       setState(() {
         _remainingTime = endTime.difference(startTime);
         _progress = 1.0;
-        _timerColor = Colors.grey; // Belum mulai
+        _timerColor = Colors.grey;
       });
       return;
     }
 
     if (current.isAfter(endTime)) {
-      // Sudah lewat jam kerja
       timer.cancel();
       setState(() {
         _remainingTime = Duration.zero;
         _progress = 0.0;
-        _timerColor = Colors.red; // Waktu habis
+        _timerColor = Colors.red;
       });
       return;
     }
 
-    // Hitung sisa waktu
     final remainingSeconds = endTime.difference(current).inSeconds;
     final progress = remainingSeconds / totalDuration;
 
-    // Tentukan warna otomatis
     Color color;
     if (remainingSeconds > 4 * 3600) {
-      color = Colors.red; // >4 jam → merah
+      color = Colors.green;
     } else if (remainingSeconds > 2 * 3600) {
-      color = Colors.yellow; // 2–4 jam → kuning
+      color = Colors.yellow;
     } else {
-      color = Colors.green; // <2 jam → hijau
+      color = Colors.red;
     }
 
     setState(() {
@@ -628,6 +650,8 @@ void startWorkTimer() {
     });
   });
 }
+
+
 
 
 
