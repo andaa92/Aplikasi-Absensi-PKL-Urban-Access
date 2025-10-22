@@ -170,7 +170,6 @@ class _LoginPageState extends State<LoginPage> {
                 : 'Gunakan sidik jari untuk login cepat',
         options: const AuthenticationOptions(biometricOnly: true),
       );
-
       if (didAuthenticate) {
         SharedPreferences prefs = await SharedPreferences.getInstance();
         final savedEmail = prefs.getString('email');
