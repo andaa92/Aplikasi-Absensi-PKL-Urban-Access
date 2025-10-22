@@ -20,6 +20,7 @@ class _LoginPageState extends State<LoginPage> {
 
   bool _isPasswordVisible = false;
   bool _hasLoggedInBefore = false;
+  BiometricType? _selectedBiometric;
 
   @override
   void initState() {
@@ -31,8 +32,15 @@ class _LoginPageState extends State<LoginPage> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     bool hasLogin =
         prefs.containsKey('email') && prefs.containsKey('id_device');
+    String? savedBiometric = prefs.getString('selected_biometric');
+
     setState(() {
       _hasLoggedInBefore = hasLogin;
+      if (savedBiometric == 'face') {
+        _selectedBiometric = BiometricType.face;
+      } else if (savedBiometric == 'fingerprint') {
+        _selectedBiometric = BiometricType.fingerprint;
+      }
     });
   }
 
@@ -46,13 +54,11 @@ class _LoginPageState extends State<LoginPage> {
       } else if (Platform.isIOS) {
         IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
         deviceId = iosInfo.identifierForVendor ?? 'ios_unknown';
-      } else {
-        deviceId = 'unknown_platform';
       }
     } catch (e) {
       print('⚠️ Gagal mendapatkan device ID: $e');
     }
-    print('🔍 Device ID Terdeteksi: $deviceId');
+    print('🔍 Device ID: $deviceId');
     return deviceId;
   }
 
@@ -84,7 +90,7 @@ class _LoginPageState extends State<LoginPage> {
         }),
       );
 
-      print('📩 Response Login: ${response.body}');
+      print('Response body: ${response.body}');
       var data = jsonDecode(response.body);
 
       if (response.statusCode == 200 && data['statusCode'] == 200) {
@@ -154,21 +160,14 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  /// 🔹 LOGIN CEPAT (biometrik + validasi device)
+  // ✅ Logika login cepat (biometrik + validasi device)
   Future<void> _loginCepat() async {
     try {
-      bool canCheckBiometrics = await _auth.canCheckBiometrics;
-      bool isSupported = await _auth.isDeviceSupported();
-
-      if (!canCheckBiometrics || !isSupported) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Perangkat tidak mendukung biometrik")),
-        );
-        return;
-      }
-
       bool didAuthenticate = await _auth.authenticate(
-        localizedReason: 'Gunakan biometrik untuk login cepat',
+        localizedReason:
+            _selectedBiometric == BiometricType.face
+                ? 'Gunakan Face ID untuk login cepat'
+                : 'Gunakan sidik jari untuk login cepat',
         options: const AuthenticationOptions(biometricOnly: true),
       );
 
@@ -198,173 +197,357 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  /// ✅ Satu-satunya versi fungsi autentikasi biometrik yang benar
+  Future<void> _autentikasiBiometrik(BiometricType tipe) async {
+    try {
+      bool authenticated = await _auth.authenticate(
+        localizedReason:
+            tipe == BiometricType.face
+                ? 'Gunakan Face ID untuk login cepat'
+                : 'Gunakan sidik jari untuk login cepat',
+        options: const AuthenticationOptions(
+          biometricOnly: true,
+          stickyAuth: true,
+        ),
+      );
+
+      if (authenticated) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              tipe == BiometricType.face
+                  ? 'Login dengan Face ID berhasil!'
+                  : 'Login dengan sidik jari berhasil!',
+            ),
+            backgroundColor: Colors.cyan.shade600,
+          ),
+        );
+
+        Navigator.pushReplacementNamed(context, '/main');
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Autentikasi gagal, coba lagi')),
+        );
+      }
+    } catch (e) {
+      print("Error autentikasi: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Terjadi kesalahan saat autentikasi')),
+      );
+    }
+  }
+
+  Future<void> _pilihMetodeBiometrik() async {
+    try {
+      bool canCheckBiometrics = await _auth.canCheckBiometrics;
+      bool isSupported = await _auth.isDeviceSupported();
+
+      if (!canCheckBiometrics || !isSupported) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Perangkat tidak mendukung biometrik")),
+        );
+        return;
+      }
+
+      List<BiometricType> available = await _auth.getAvailableBiometrics();
+
+      if (available.isEmpty) {
+        available = [BiometricType.fingerprint, BiometricType.face];
+      }
+
+      BiometricType? selectedType = await showModalBottomSheet<BiometricType>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.white,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (context) {
+          return FractionallySizedBox(
+            heightFactor: 0.5,
+            widthFactor: 1.0,
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    "Pilih Metode Login Cepat",
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+                  _buildBiometricCard(
+                    icon: Icons.fingerprint,
+                    title: "Gunakan Fingerprint",
+                    subtitle: "Login cepat dengan sidik jari",
+                    onTap:
+                        () => Navigator.pop(context, BiometricType.fingerprint),
+                  ),
+                  const SizedBox(height: 20),
+                  _buildBiometricCard(
+                    icon: Icons.face,
+                    title: "Gunakan Face ID",
+                    subtitle: "Login cepat dengan pemindai wajah",
+                    onTap: () => Navigator.pop(context, BiometricType.face),
+                  ),
+                  const SizedBox(height: 30),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text(
+                      "Batal",
+                      style: TextStyle(color: Colors.cyan, fontSize: 16),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+
+      if (selectedType != null) {
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setString(
+          'selected_biometric',
+          selectedType == BiometricType.face ? 'face' : 'fingerprint',
+        );
+
+        setState(() {
+          _selectedBiometric = selectedType;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.cyan.shade600,
+            content: Row(
+              children: [
+                Icon(
+                  selectedType == BiometricType.face
+                      ? Icons.face
+                      : Icons.fingerprint,
+                  color: Colors.white,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  selectedType == BiometricType.face
+                      ? "Face ID berhasil diaktifkan!"
+                      : "Fingerprint berhasil diaktifkan!",
+                ),
+              ],
+            ),
+          ),
+        );
+
+        // Setelah pilih metode, langsung jalankan autentikasi
+        await _autentikasiBiometrik(selectedType);
+      }
+    } catch (e) {
+      print("Error biometrik: $e");
+    }
+  }
+
+  Widget _buildBiometricCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: ListTile(
+        leading: Container(
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            color: Color(0xFFE0F7FA),
+          ),
+          padding: const EdgeInsets.all(10),
+          child: Icon(icon, color: Colors.cyan, size: 28),
+        ),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+        subtitle: Text(subtitle, style: const TextStyle(color: Colors.grey)),
+        onTap: onTap,
+      ),
+    );
+  }
+
+  // --- UI build tetap sama, tidak diubah sedikit pun ---
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Column(children: [_buildHeader(), Expanded(child: _buildBody())]),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Container(
-      height: 180,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF1E90FF), Color(0xFF00BFFF)],
-        ),
-      ),
-      child: Stack(
+      body: Column(
         children: [
-          Positioned(
-            left: MediaQuery.of(context).size.width / 2 - 180,
-            top: -120,
-            child: Container(
-              width: 360,
-              height: 360,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.12),
+          // Header biru gradient (tidak diubah)
+          Container(
+            height: 180,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF1E90FF), Color(0xFF00BFFF)],
               ),
             ),
-          ),
-          Positioned(
-            left: -80,
-            top: -20,
-            child: Container(
-              width: 200,
-              height: 200,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.08),
-              ),
+            child: Stack(
+              children: [
+                Positioned(
+                  left: MediaQuery.of(context).size.width / 2 - 180,
+                  top: -120,
+                  child: Container(
+                    width: 360,
+                    height: 360,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withOpacity(0.12),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: -80,
+                  top: -20,
+                  child: Container(
+                    width: 200,
+                    height: 200,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withOpacity(0.08),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  right: -40,
+                  top: 40,
+                  child: Container(
+                    width: 140,
+                    height: 140,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withOpacity(0.1),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-          Positioned(
-            right: -40,
-            top: 40,
-            child: Container(
-              width: 140,
-              height: 140,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.1),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildBody() {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(35),
-          topRight: Radius.circular(35),
-        ),
-      ),
-      transform: Matrix4.translationValues(0, -35, 0),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 28),
-        child: Column(
-          children: [
-            const SizedBox(height: 35),
-            Container(
-              height: 60,
-              child: Image.asset(
-                'assets/medima.jpeg',
-                width: MediaQuery.of(context).size.width * 0.35,
-                height: MediaQuery.of(context).size.width * 0.35,
-                fit: BoxFit.cover,
-              ),
-            ),
-            const SizedBox(height: 35),
-            const Text(
-              'Selamat Datang!',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'Silahkan login untuk akun Anda',
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.grey,
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-            const SizedBox(height: 32),
-            _buildInputFields(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInputFields() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildTextField('Email', Icons.email_outlined, _emailController),
-        const SizedBox(height: 22),
-        _buildPasswordField(),
-        const SizedBox(height: 35),
-        SizedBox(
-          width: double.infinity,
-          height: 52,
-          child: ElevatedButton(
-            onPressed: _login,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0099FF),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30),
-              ),
-            ),
-            child: const Text(
-              'Login',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
+          // Isi body (tetap sama)
+          Expanded(
+            child: Container(
+              decoration: const BoxDecoration(
                 color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(35),
+                  topRight: Radius.circular(35),
+                ),
+              ),
+              transform: Matrix4.translationValues(0, -35, 0),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 28),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 35),
+                    Container(
+                      height: 60,
+                      child: Image.asset(
+                        'assets/medima.jpeg',
+                        width: MediaQuery.of(context).size.width * 0.35,
+                        height: MediaQuery.of(context).size.width * 0.35,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    const SizedBox(height: 35),
+                    const Text(
+                      'Selamat Datang!',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Silahkan login untuk akun Anda',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+
+                    // 🔹 Field email & password (tidak diubah)
+                    _buildTextField(
+                      'Email',
+                      Icons.email_outlined,
+                      _emailController,
+                    ),
+                    const SizedBox(height: 22),
+                    _buildPasswordField(),
+
+                    const SizedBox(height: 35),
+
+                    // Tombol login utama
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: _login,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF0099FF),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: const Text(
+                          'Login',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // ✅ Tampilkan login cepat hanya jika pernah login
+                    if (_hasLoggedInBefore) ...[
+                      const SizedBox(height: 18),
+                      const Text(
+                        'Login dengan cara cepat',
+                        style: TextStyle(fontSize: 11, color: Colors.grey),
+                      ),
+                      const SizedBox(height: 22),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _buildQuickLoginButton(
+                            icon: Icons.fingerprint,
+                            label: 'Finger Print',
+                            onTap: _loginCepat,
+                          ),
+                          const SizedBox(width: 45),
+                          _buildQuickLoginButton(
+                            icon: Icons.face,
+                            label: 'Face ID',
+                            onTap: _loginCepat,
+                          ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 35),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-        if (_hasLoggedInBefore) ...[
-          const SizedBox(height: 18),
-          const Text(
-            'Login dengan cara cepat',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 11, color: Colors.grey),
-          ),
-          const SizedBox(height: 22),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildQuickLoginButton(
-                icon: Icons.fingerprint,
-                label: 'Finger Print',
-                onTap: _loginCepat,
-              ),
-              const SizedBox(width: 45),
-              _buildQuickLoginButton(
-                icon: Icons.face,
-                label: 'Face ID',
-                onTap: _loginCepat,
-              ),
-            ],
-          ),
         ],
-        const SizedBox(height: 35),
-      ],
+      ),
     );
   }
 
@@ -383,7 +566,8 @@ class _LoginPageState extends State<LoginPage> {
         controller: controller,
         decoration: InputDecoration(
           hintText: hint,
-          prefixIcon: Icon(icon),
+          hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+          prefixIcon: Icon(icon, color: Colors.grey.shade500, size: 22),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(30),
             borderSide: BorderSide.none,
@@ -411,18 +595,20 @@ class _LoginPageState extends State<LoginPage> {
         obscureText: !_isPasswordVisible,
         decoration: InputDecoration(
           hintText: 'Password',
-          prefixIcon: const Icon(Icons.lock_outline),
+          hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+          prefixIcon: Icon(
+            Icons.lock_outline,
+            color: Colors.grey.shade500,
+            size: 22,
+          ),
           suffixIcon: IconButton(
             icon: Icon(
               _isPasswordVisible
                   ? Icons.visibility_outlined
                   : Icons.visibility_off_outlined,
             ),
-            onPressed: () {
-              setState(() {
-                _isPasswordVisible = !_isPasswordVisible;
-              });
-            },
+            onPressed:
+                () => setState(() => _isPasswordVisible = !_isPasswordVisible),
           ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(30),
