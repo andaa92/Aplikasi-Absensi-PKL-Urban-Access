@@ -9,46 +9,103 @@ class LandingPage extends StatefulWidget {
 
 class _LandingPageState extends State<LandingPage>
     with TickerProviderStateMixin {
-  late AnimationController _rotationController;
-  late AnimationController _fadeController;
-  late Animation<double> _fadeAnimation;
+  late AnimationController _logoController;
+  late AnimationController _circleController;
+  late AnimationController _dividerController;
+  late AnimationController _textController;
+  late AnimationController _loadingController;
+
+  late Animation<double> _logoFadeAnimation;
+  late Animation<double> _circleRotationAnimation;
+  late Animation<double> _dividerAnimation;
+  late Animation<Offset> _textSlideAnimation;
+  late Animation<double> _loadingAnimation;
 
   @override
   void initState() {
     super.initState();
 
-    // Controller untuk rotasi lingkaran
-    _rotationController = AnimationController(
+    // Loading animation (pulsing effect)
+    _loadingController = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    _loadingAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
+      CurvedAnimation(parent: _loadingController, curve: Curves.easeInOut),
+    );
+
+    // Logo fade in animation (0.8 detik)
+    _logoController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    _logoFadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _logoController, curve: Curves.easeIn));
+
+    // Circle rotation animation (berputar terus menerus)
+    _circleController = AnimationController(
       duration: const Duration(seconds: 3),
       vsync: this,
-    )..repeat(); // Repeat untuk rotasi terus menerus
+    )..repeat();
+    _circleRotationAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(_circleController);
 
-    // Controller untuk fade in logo dan text
-    _fadeController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
+    // Divider expand animation (0.5 detik, mulai setelah logo selesai)
+    _dividerController = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+    _dividerAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _dividerController, curve: Curves.easeOut),
+    );
+
+    // Text slide animation (0.5 detik, mulai setelah divider selesai)
+    _textController = AnimationController(
+      duration: const Duration(milliseconds: 500),
       vsync: this,
     );
 
-    _fadeAnimation = CurvedAnimation(
-      parent: _fadeController,
-      curve: Curves.easeIn,
-    );
+    _textSlideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.5), // dari bawah (positif)
+      end: Offset.zero, // ke posisi normal
+    ).animate(CurvedAnimation(parent: _textController, curve: Curves.easeOut));
 
-    // Mulai animasi fade in
-    _fadeController.forward();
+    // Jalankan animasi secara berurutan
+    _startAnimations();
 
-    // Delay 3 detik sebelum pindah ke LoginPage
-    Future.delayed(const Duration(seconds: 3), () {
+    // Delay 4 detik sebelum pindah ke LoginPage
+    Future.delayed(const Duration(seconds: 4), () {
       if (mounted) {
         Navigator.pushReplacementNamed(context, '/login');
       }
     });
   }
 
+  void _startAnimations() async {
+    // Mulai animasi logo dan circle bersamaan
+    _logoController.forward();
+
+    // Tunggu logo selesai, lalu jalankan divider
+    await Future.delayed(const Duration(milliseconds: 800));
+    if (mounted) _dividerController.forward();
+
+    // Tunggu divider selesai, lalu jalankan text slide
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (mounted) _textController.forward();
+  }
+
   @override
   void dispose() {
-    _rotationController.dispose();
-    _fadeController.dispose();
+    _logoController.dispose();
+    _circleController.dispose();
+    _dividerController.dispose();
+    _textController.dispose();
+    _loadingController.dispose();
     super.dispose();
   }
 
@@ -85,18 +142,18 @@ class _LandingPageState extends State<LandingPage>
               // ),
               const SizedBox(height: 40),
 
-              // Logo / animasi utama
+              // Logo / animasi utama dengan circle berputar
               Expanded(
                 child: Center(
                   child: AnimatedBuilder(
-                    animation: _rotationController,
+                    animation: _circleController,
                     builder: (context, child) {
                       return Stack(
                         alignment: Alignment.center,
                         children: [
-                          // Lingkaran terluar - rotasi lambat
+                          // Circle terluar - berputar
                           Transform.rotate(
-                            angle: _rotationController.value * 2 * 3.14159,
+                            angle: _circleRotationAnimation.value * 2 * 3.14159,
                             child: Container(
                               width: 320,
                               height: 320,
@@ -106,9 +163,10 @@ class _LandingPageState extends State<LandingPage>
                               ),
                             ),
                           ),
-                          // Lingkaran kedua - rotasi sedang berlawanan
+                          // Circle kedua - berputar berlawanan arah
                           Transform.rotate(
-                            angle: -_rotationController.value * 1.5 * 3.14159,
+                            angle:
+                                -_circleRotationAnimation.value * 2 * 3.14159,
                             child: Container(
                               width: 260,
                               height: 260,
@@ -118,9 +176,9 @@ class _LandingPageState extends State<LandingPage>
                               ),
                             ),
                           ),
-                          // Lingkaran ketiga - rotasi cepat
+                          // Circle ketiga - berputar
                           Transform.rotate(
-                            angle: _rotationController.value * 2.5 * 3.14159,
+                            angle: _circleRotationAnimation.value * 2 * 3.14159,
                             child: Container(
                               width: 200,
                               height: 200,
@@ -132,7 +190,7 @@ class _LandingPageState extends State<LandingPage>
                           ),
                           // Logo dengan fade in animation
                           FadeTransition(
-                            opacity: _fadeAnimation,
+                            opacity: _logoFadeAnimation,
                             child: Container(
                               width: 160,
                               height: 160,
@@ -157,51 +215,67 @@ class _LandingPageState extends State<LandingPage>
                 ),
               ),
 
-              // Text motivasi dengan fade in
-              FadeTransition(
-                opacity: _fadeAnimation,
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 80),
-                  child: Column(
-                    children: const [
-                      Text(
-                        'Setiap kehadiran adalah',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
+              // Text motivasi dengan animasi
+              Padding(
+                padding: const EdgeInsets.only(bottom: 80),
+                child: Column(
+                  children: [
+                    // Text slide dari bawah
+                    SlideTransition(
+                      position: _textSlideAnimation,
+                      child: FadeTransition(
+                        opacity: _textController,
+                        child: Column(
+                          children: const [
+                            Text(
+                              'Setiap kehadiran adalah',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'langkah menuju kesuksesan!',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      SizedBox(height: 2),
-                      Text(
-                        'langkah menuju kesuksesan!',
-                        style: TextStyle(
+                    ),
+                    const SizedBox(height: 8),
+                    // Divider dengan animasi expand dari tengah
+                    AnimatedBuilder(
+                      animation: _dividerAnimation,
+                      builder: (context, child) {
+                        return Container(
+                          width: 240 * _dividerAnimation.value,
+                          height: 2,
                           color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      SizedBox(height: 8),
-                      Divider(
-                        color: Colors.white,
-                        thickness: 2,
-                        indent: 120,
-                        endIndent: 120,
-                      ),
-                    ],
-                  ),
+                        );
+                      },
+                    ),
+                  ],
                 ),
               ),
 
-              // Loading text
+              // Loading text dengan pulsing animation
               Padding(
                 padding: const EdgeInsets.only(bottom: 30),
-                child: Text(
-                  'Memuat Aplikasi...',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w400,
+                child: FadeTransition(
+                  opacity: _loadingAnimation,
+                  child: Text(
+                    'Memuat Aplikasi...',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.9),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w400,
+                    ),
                   ),
                 ),
               ),
