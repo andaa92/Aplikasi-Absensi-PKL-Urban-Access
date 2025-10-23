@@ -521,10 +521,18 @@ class DashboardPageState extends State<DashboardPage> {
 
 Future<void> _absenPulang() async {
   try {
+    // 🕔 Cek waktu sekarang
+    DateTime now = DateTime.now();
+    if (now.hour < 17) {
+      // ✨ GANTI dengan popup menarik
+      showWaktuBelumCukupPopup(context);
+      return; // ⛔ Stop di sini kalau belum jam 17.00
+    }
+    
     // 🛑 Cek fake GPS sebelum lanjut
     bool isFake = await checkFakeLocation(context);
     if (isFake) return;
-
+    
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -532,7 +540,7 @@ Future<void> _absenPulang() async {
       );
       return;
     }
-
+    
     LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
@@ -543,45 +551,42 @@ Future<void> _absenPulang() async {
         return;
       }
     }
-
+    
     if (permission == LocationPermission.deniedForever) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Izin lokasi ditolak permanen")),
       );
       return;
     }
-
+    
     Position position = await Geolocator.getCurrentPosition(
       desiredAccuracy: LocationAccuracy.high,
     );
-
+    
     const double officeLatitude = -6.947716562093121;
     const double officeLongitude = 107.6271448595231;
-
     double distance = Geolocator.distanceBetween(
       position.latitude,
       position.longitude,
       officeLatitude,
       officeLongitude,
     );
-
+    
     if (distance <= 50) {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       String? userEmail = prefs.getString('email');
-
+      
       if (userEmail == null || userEmail.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Email tidak ditemukan, silakan login ulang.")),
         );
         return;
       }
-
-      final response = await apiService.absenPulangSiswa(userEmail);
-
-      if (response['statusCode'] == 200) {
-       showSuccessPopup(context, response['msg']);
       
-
+      final response = await apiService.absenPulangSiswa(userEmail);
+      
+      if (response['statusCode'] == 200) {
+        showSuccessPopup(context, response['msg']);
         await refreshDashboard();
       } else {
         showErrorPopup(context, response['msg'] ?? 'Gagal absen pulang');
@@ -598,6 +603,7 @@ Future<void> _absenPulang() async {
     );
   }
 }
+
 
 
 Timer? _timer;
@@ -1479,4 +1485,145 @@ class _ErrorPopupState extends State<_ErrorPopup>
       ),
     );
   }
+}
+void showWaktuBelumCukupPopup(BuildContext context) {
+  showDialog(
+    context: context,
+    barrierDismissible: true,
+    builder: (BuildContext context) {
+      return Dialog(
+        backgroundColor: Colors.transparent,
+        child: TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0.0, end: 1.0),
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.elasticOut,
+          builder: (context, value, child) {
+            return Transform.scale(
+              scale: value,
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF4FC3F7), Color(0xFF29B6F6)],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.blue.withOpacity(0.5),
+                      blurRadius: 20,
+                      spreadRadius: 2,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // 🕐 Animasi Icon Jam
+                    TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0.0, end: 1.0),
+                      duration: const Duration(milliseconds: 800),
+                      builder: (context, rotateValue, child) {
+                        return Transform.rotate(
+                          angle: rotateValue * 2 * 3.14159, // 1 putaran penuh
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.3),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.access_time_filled,
+                              size: 60,
+                              color: Colors.white,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    
+                    const SizedBox(height: 20),
+                    
+                    // 📝 Judul
+                    const Text(
+                      "Belum Waktunya! ⏰",
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    
+                    const SizedBox(height: 12),
+                    
+                    // 💬 Pesan
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Text(
+                        "Absen pulang baru bisa dilakukan\nmulai pukul 17:00",
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.white,
+                          height: 1.5,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 8),
+                    
+                    // ⏱️ Waktu sekarang
+                    Text(
+                      "Sekarang: ${TimeOfDay.now().format(context)}",
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.white.withOpacity(0.9),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 20),
+                    
+                    // 🔘 Tombol OK
+                    ElevatedButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: const Color.fromARGB(255, 53, 159, 246),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 40,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(25),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        "Mengerti",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      );
+    },
+  );
 }
