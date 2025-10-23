@@ -716,6 +716,7 @@ void dispose() {
           ),
         );
       },
+      
       child: Container(
         padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
@@ -853,7 +854,7 @@ void dispose() {
         iconData = Icons.check_circle;
         break;
       case 'terlambat':
-        cardColor = const Color(0xFFFF8A65);
+        cardColor = const Color.fromARGB(255, 255, 78, 78);
         iconData = Icons.close;
         break;
       case 'izin':
@@ -861,7 +862,7 @@ void dispose() {
         iconData = Icons.warning;
         break;
       case 'sakit':
-        cardColor = const Color(0xFF29B6F6);
+        cardColor = const Color(0xFFFF8A65);
         iconData = Icons.medical_services;
         break;
       default:

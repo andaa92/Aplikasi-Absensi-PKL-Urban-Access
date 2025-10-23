@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:absensi_pkl_urban/models/profile_model.dart';
 import 'package:absensi_pkl_urban/models/dashboard_model.dart';
 import 'package:absensi_pkl_urban/services/api_service.dart';
+import 'package:absensi_pkl_urban/screen/main-page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({Key? key}) : super(key: key);
@@ -362,15 +363,25 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   // 🔹 Statistik Card
-  Widget _buildStatCard(
-    String value,
-    String label,
-    Color bgColor,
-    Color textColor,
-    double valueFont,
-    double labelFont,
-  ) {
-    return Container(
+ Widget _buildStatCard(
+  String value,
+  String label,
+  Color bgColor,
+  Color textColor,
+  double valueFont,
+  double labelFont,
+) {
+  return GestureDetector(
+    onTap: () {
+      // Navigasi ke halaman absensi di tab pertama
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const MainPage(initialIndex: 0),
+        ),
+      );
+    },
+    child: Container(
       padding: const EdgeInsets.symmetric(vertical: 18),
       decoration: BoxDecoration(
         color: bgColor,
@@ -397,8 +408,13 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
+
+
+
+
 
   // 🔹 Tab Button
   Widget _buildTabButton(String title, int index, double fontSize) {

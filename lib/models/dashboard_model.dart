@@ -18,6 +18,7 @@ class DashboardData {
   });
 }
 
+
 class HistoryAbsen {
   final String tanggal;
   final String keterangan;
