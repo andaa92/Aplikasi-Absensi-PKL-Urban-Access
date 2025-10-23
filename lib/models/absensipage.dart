@@ -6,6 +6,7 @@ class AbsensiModel {
   final String checkIn;
   final String checkOut;
   final String status;
+  final String? keterangan; // 🟢 tambahan baru
   final IconData icon;
   final Color statusColor;
   final Color statusBgColor;
@@ -16,12 +17,12 @@ class AbsensiModel {
     required this.checkIn,
     required this.checkOut,
     required this.status,
+    this.keterangan, // 🟢 tambahan baru
     required this.icon,
     required this.statusColor,
     required this.statusBgColor,
   });
 
-  // biar gampang parse dari JSON Dashboard
   factory AbsensiModel.fromJson(Map<String, dynamic> json) {
     final DateTime? dateObj = DateTime.tryParse(json['tanggal'] ?? '');
     final String hari = dateObj != null ? _namaHari(dateObj.weekday) : '-';
@@ -33,6 +34,7 @@ class AbsensiModel {
       checkIn: json['masuk'] ?? '-',
       checkOut: json['keluar'] ?? '-',
       status: status,
+      keterangan: json['keterangan'] ?? '-', // 🟢 ambil kalau ada
       icon: _getIcon(status),
       statusColor: _getStatusColor(status),
       statusBgColor: _getStatusColor(status).withOpacity(0.1),
@@ -65,9 +67,9 @@ class AbsensiModel {
       case 'tepat waktu':
         return Colors.green;
       case 'izin':
-        return Colors.amber;
+        return const Color(0xFFFFD54F);
       case 'sakit':
-        return Colors.orange;
+        return const Color(0xFFFF8A65);
       case 'terlambat':
         return Colors.red;
       default:
