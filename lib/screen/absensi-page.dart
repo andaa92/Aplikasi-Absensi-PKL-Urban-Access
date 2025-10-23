@@ -77,12 +77,14 @@ class _AbsensiPageState extends State<AbsensiPage> {
     final List<AbsensiModel> list = dashboardData.history
         .map((e) => AbsensiModel.fromJson({
               'tanggal': e.tanggal,
+              'keterangan': e.keterangan,
               'masuk': e.masuk,
               'keluar': e.keluar,
               'status': e.status,
             }))
         .where((absen) => absen.status.toLowerCase() != 'libur')
         .toList();
+        
 
     List<AbsensiModel> filteredList = list;
 
@@ -298,7 +300,7 @@ void _applyFilter(String filter, DateTimeRange? range) async {
       ),
       borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
     ),
-    padding: const EdgeInsets.fromLTRB(24, 60, 24, 40),
+    padding: const EdgeInsets.fromLTRB(20, 30, 24, 40),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -350,7 +352,7 @@ void _applyFilter(String filter, DateTimeRange? range) async {
               ),
 
 
-        const SizedBox(height: 20),
+        const SizedBox(height: 25),
         const Text(
           'Riwayat Absensi',
           style: TextStyle(
@@ -359,53 +361,133 @@ void _applyFilter(String filter, DateTimeRange? range) async {
             fontWeight: FontWeight.bold,
           ),
         ),
+          const SizedBox(height: 10),
+
         Text(
           now,
           style: const TextStyle(
-            color: Color.fromARGB(255, 255, 255, 255),
+            color: Color.fromARGB(198, 255, 255, 255),
             fontSize: 16,
           ),
         ),
+       
       ],
     ),
+    
   );
+
+  
 }
 
 
-  Widget _buildAbsensiItem(AbsensiModel item) {
-    return Card(
-  margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
-  elevation: 3,
-  color: Colors.white,
-  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-  child: Padding(
-    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-    child: ListTile(
-      leading: CircleAvatar(
-        backgroundColor: item.statusBgColor,
-        child: Icon(item.icon, color: item.statusColor),
-      ),
-      title: Text(
-        '${item.hari}, ${item.tanggal}',
-        style: const TextStyle(fontWeight: FontWeight.w400),
-      ),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Masuk: ${item.checkIn}'),
-          Text('Pulang: ${item.checkOut}'),
-        ],
-      ),
-      trailing: Text(
-        item.status,
-        style: TextStyle(
-          fontWeight: FontWeight.bold,
-          color: item.statusColor,
-        ),
-      ),
-    ),
-  ),
-);
+ Widget _buildAbsensiItem(AbsensiModel item) {
+  // Format tanggal seperti di dashboard
+  String formatTanggal(String tgl) {
+    try {
+      final DateTime parsed = DateTime.parse(tgl);
+      return DateFormat("d MMMM yyyy", "id_ID").format(parsed);
+    } catch (e) {
+      return tgl;
+    }
+  }
 
+  return Container(
+    margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+    padding: const EdgeInsets.all(14),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.08),
+          blurRadius: 10,
+          offset: const Offset(0, 4),
+        ),
+      ],
+    ),
+    child: Row(
+      children: [
+        const SizedBox(width: 4),
+        // 🔹 Ikon status
+        Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: item.statusBgColor,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            item.icon,
+            color: item.statusColor,
+            size: 24,
+          ),
+        ),
+        const SizedBox(width: 17),
+
+        // 🔹 Info absensi
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                formatTanggal(item.tanggal),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 4),
+              if (item.keterangan != null &&
+                  item.keterangan!.isNotEmpty &&
+                  item.keterangan != '-')
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    'keterangan: ${item.keterangan!}\n',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      
+                      color: Colors.black54,
+                    ),
+                  ),
+                ),
+               Row(children: [
+                    Expanded(
+                        child: Text("Masuk: ${item.checkIn}",
+                            style: const TextStyle(
+                                fontSize: 13, color: Colors.black45))),
+                    Expanded(
+                        child: Text("Keluar: ${item.checkOut}",
+                            style: const TextStyle(
+                                fontSize: 13, color: Colors.black45))),
+                  ]),
+            ],
+          ),
+        ),
+       
+       const SizedBox(width: 5),
+
+        // 🔹 Status text
+        Container(
+          padding:
+              const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: item.statusBgColor,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            item.status,
+            style: TextStyle(
+              color: item.statusColor,
+              fontWeight: FontWeight.w600,
+              fontSize: 10,
+            ),
+          ),
+        ),
+         const SizedBox(width: 3),
+      ],
+    ),
+  );
 }
 }

@@ -841,6 +841,8 @@ void dispose() {
     );
   }
 
+  
+
   Widget _buildHistoryCard(String date, String description, String masuk,
       String keluar, String status) {
     String formatTanggal(String tgl) {
@@ -851,6 +853,9 @@ void dispose() {
         return tgl;
       }
     }
+
+
+
 
     Color cardColor;
     IconData iconData;
@@ -917,7 +922,7 @@ void dispose() {
                           fontWeight: FontWeight.w600,
                           color: Colors.black87)),
                   const SizedBox(height: 4),
-                  Text("Keterangan : $description",
+                  Text("Keterangan : \n$description",
                       style: const TextStyle(
                           fontSize: 12, color: Colors.black54)),
                   const SizedBox(height: 8),
