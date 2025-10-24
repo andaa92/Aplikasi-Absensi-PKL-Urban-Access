@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:absensi_pkl_urban/screen/dashboard/succes-submit-page.dart';
 import 'package:intl/intl.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // 🟢 [TAMBAHAN GPT]
-import 'package:absensi_pkl_urban/services/izin_sakit_service.dart'; // 🟢 [TAMBAHAN GPT]
-
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:absensi_pkl_urban/services/izin_sakit_service.dart';
 
 class FormIzin extends StatefulWidget {
   const FormIzin({Key? key}) : super(key: key);
@@ -17,92 +16,89 @@ class _FormIzinState extends State<FormIzin> {
   final TextEditingController _startDateController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
 
-  final IzinSakitService service = IzinSakitService(); // 🟢 [TAMBAHAN GPT]
+  final IzinSakitService service = IzinSakitService();
 
-  String namaUser = "User"; // 🟢 [TAMBAHAN GPT]
+  String namaUser = "User";
 
   @override
   void initState() {
     super.initState();
-    _loadUserData(); // 🟢 [TAMBAHfAN GPT]
+    _loadUserData();
   }
 
-  // 🟢 [TAMBAHAN GPT] Ambil nama user & userPkl dari SharedPreferences
   Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       namaUser = prefs.getString('nama') ?? 'User';
-      _nsmController.text = prefs.getString('nsm') ?? ''; // 🟢 otomatis isi NSM
+      _nsmController.text = prefs.getString('nsm') ?? '';
     });
   }
 
-  // 🟢 Fungsi refresh tanpa ubah desain
-Future<void> _handleRefresh() async {
-  await _loadUserData(); // ambil ulang data user
-  setState(() {
-    _startDateController.clear();
-    _descriptionController.clear();
-  });
-
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(
-      content: Text('Data berhasil di refresh'),
-      backgroundColor: Colors.blueAccent,
-      duration: Duration(seconds: 2),
-    ),
-  );
-}
-
-  
-
-// 🟢 PENGATURAN KALENDER
-  Future<void> _selectDate(BuildContext context, TextEditingController controller) async {
-  final DateTime now = DateTime.now();
-
-  final DateTime? picked = await showDatePicker(
-    context: context,
-    initialDate: now,
-    firstDate: DateTime(now.year, now.month, now.day), // 🔒 tidak bisa pilih sebelum hari ini
-    lastDate: DateTime(2030),
-    helpText: 'Pilih Tanggal Izin',
-    cancelText: 'Batal',
-    confirmText: 'Pilih',
-    builder: (context, child) {
-      return Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(
-            primary: Color(0xFF2196F3), // warna utama kalender
-            onPrimary: Colors.white,    // warna teks pada tombol
-            onSurface: Colors.black87,  // warna teks tanggal
-          ),
-          textButtonTheme: TextButtonThemeData(
-            style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFF2196F3), // warna tombol CANCEL & OK
-              textStyle: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-          dialogTheme: DialogThemeData(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(24), // pojok kalender lebih halus
-            ),
-          ),
-        ),
-        child: child!,
-      );
-    },
-  );
-
-  if (picked != null) {
+  Future<void> _handleRefresh() async {
+    await _loadUserData();
     setState(() {
-      controller.text = DateFormat('yyyy-MM-dd').format(picked);
+      _startDateController.clear();
+      _descriptionController.clear();
     });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Data berhasil di refresh'),
+        backgroundColor: Color(0xFF29B6F6),
+        duration: Duration(seconds: 2),
+      ),
+    );
   }
-}
 
+  Future<void> _selectDate(
+    BuildContext context,
+    TextEditingController controller,
+  ) async {
+    final DateTime now = DateTime.now();
 
-  // 🟢 [TAMBAHAN GPT] Fungsi kirim data ke API
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: DateTime(now.year, now.month, now.day),
+      lastDate: DateTime(2030),
+      helpText: 'Pilih Tanggal Izin',
+      cancelText: 'Batal',
+      confirmText: 'Pilih',
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF29B6F6), // 🔥 SAMA DENGAN DASHBOARD
+              onPrimary: Colors.white,
+              onSurface: Colors.black87,
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFF29B6F6),
+                textStyle: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            dialogTheme: DialogThemeData(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        controller.text = DateFormat('yyyy-MM-dd').format(picked);
+      });
+    }
+  }
+
   Future<void> _handleSubmit() async {
-    if (_startDateController.text.isEmpty || _descriptionController.text.isEmpty) {
+    if (_startDateController.text.isEmpty ||
+        _descriptionController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Mohon lengkapi semua field'),
@@ -126,12 +122,10 @@ Future<void> _handleRefresh() async {
           ),
         );
 
-         Navigator.pushReplacement(
+        Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const SuccessSubmitPage()),
-        ); 
-
-
+        );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -169,56 +163,41 @@ Future<void> _handleRefresh() async {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Header Section
-            Container(
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF42A5F5), Color(0xFF2196F3)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+      backgroundColor: const Color(0xFFF5F5F5), // 🔥 SAMA DENGAN DASHBOARD
+      body: Column(
+        children: [
+          // 🔥 HEADER SAMA PERSIS DENGAN DASHBOARD
+          Stack(
+            children: [
+              Container(
+                padding: const EdgeInsets.fromLTRB(20, 30, 20, 40),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Color(0xFF4FC3F7),
+                      Color(0xFF29B6F6),
+                    ], // 🔥 GRADIENT SAMA
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(30),
+                    bottomRight: Radius.circular(30),
+                  ),
                 ),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(30),
-                  bottomRight: Radius.circular(30),
-                ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Bar Atas
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: [
-
-                           GestureDetector(
-                              onTap: _handleRefresh, // 🟢 panggil fungsi refresh
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const Icon(
-                                  Icons.refresh,
-                                  color: Colors.white,
-                                  size: 20,
-                                ),
-                              ),
-                            ),
-                            
-                            const SizedBox(width: 12),
-                          ],
-
+                        // Tombol Refresh
+                        IconButton(
+                          onPressed: _handleRefresh,
+                          icon: const Icon(Icons.refresh, color: Colors.white),
                         ),
-                        // 🟢 [TAMBAHAN GPT] nama user dinamis
+
+                        // Nama & Profil
                         Row(
                           children: [
                             Text(
@@ -232,164 +211,176 @@ Future<void> _handleRefresh() async {
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.all(2),
-                              decoration: const BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const CircleAvatar(
-                                radius: 16,
-                                backgroundColor: Color(0xFF757575),
-                                child: Icon(
-                                  Icons.person,
-                                  color: Colors.white,
-                                  size: 20,
-                                ),
-                              ),
+                            const SizedBox(width: 10),
+                            const Icon(
+                              Icons.account_circle,
+                              color: Colors.white,
                             ),
                           ],
                         ),
                       ],
                     ),
-                    const SizedBox(height: 24),
-                    const Text(
-                      'Halaman Untuk Izin',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
+
+                    const SizedBox(height: 20),
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Halaman Untuk Izin',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Kelola dan lihat riwayat laporan izin anda',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w400,
+                    const SizedBox(height: 5),
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Kelola dan lihat riwayat laporan izin anda',
+                        style: TextStyle(color: Colors.white70, fontSize: 14),
                       ),
                     ),
                   ],
                 ),
               ),
-            ),
-            const SizedBox(height: 24),
 
-            // Form Section
-            Expanded(
+              // 🔹 LINGKARAN GELEMBUNG DEKORASI (SAMA DENGAN DASHBOARD)
+              Positioned(
+                top: 40,
+                right: 25,
+                child: IgnorePointer(
+                  child: Container(
+                    width: 90,
+                    height: 90,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withOpacity(0.1),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 100,
+                right: 50,
+                child: IgnorePointer(
+                  child: Container(
+                    width: 55,
+                    height: 55,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withOpacity(0.08),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 80,
+                left: 35,
+                child: IgnorePointer(
+                  child: Container(
+                    width: 70,
+                    height: 70,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withOpacity(0.12),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 30,
+                left: 70,
+                child: IgnorePointer(
+                  child: Container(
+                    width: 45,
+                    height: 45,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withOpacity(0.07),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 140,
+                left: 100,
+                child: IgnorePointer(
+                  child: Container(
+                    width: 35,
+                    height: 35,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withOpacity(0.09),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: 30,
+                right: 80,
+                child: IgnorePointer(
+                  child: Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withOpacity(0.06),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          // 🔥 CONTENT
+          Expanded(
+            child: Container(
+              color: const Color(0xFFF5F5F5),
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.all(20),
                 child: Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(15), // 🔥 RADIUS SAMA
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
+                        color: Colors.grey.withOpacity(0.1),
+                        spreadRadius: 1,
+                        blurRadius: 5,
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
                         'Form Pengajuan Izin',
                         style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
                         ),
                       ),
-                      const SizedBox(height: 28),
-
-                      // NSM Field
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF5F5F5),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(
-                              Icons.badge_outlined,
-                              size: 20,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          const Text(
-                            'NSM',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                      controller: _nsmController,
-                      readOnly: true, // 🟢 otomatis dari user login
-                      decoration: InputDecoration(
-                        hintText: 'NSM',
-                        hintStyle: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[400],
-                        ),
-                        filled: true,
-                        fillColor: const Color(0xFFF8F9FA),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 16,
-                        ),
-                      ),
-                    ),
                       const SizedBox(height: 24),
 
-                      // Tanggal Izin
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF5F5F5),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(
-                              Icons.calendar_today_outlined,
-                              size: 20,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          const Text(
-                            'Tanggal Izin',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ],
+                      // NSM Field
+                      const Text(
+                        'NSM',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 8),
                       TextField(
-                        controller: _startDateController,
+                        controller: _nsmController,
                         readOnly: true,
-                        onTap: () => _selectDate(context, _startDateController),
                         decoration: InputDecoration(
-                          hintText: 'Tanggal Izin',
+                          hintText: 'NSM',
                           hintStyle: TextStyle(
                             fontSize: 14,
                             color: Colors.grey[400],
@@ -402,39 +393,61 @@ Future<void> _handleRefresh() async {
                           ),
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16,
-                            vertical: 16,
+                            vertical: 14,
                           ),
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
+
+                      // Tanggal Izin
+                      const Text(
+                        'Tanggal Izin',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _startDateController,
+                        readOnly: true,
+                        onTap: () => _selectDate(context, _startDateController),
+                        decoration: InputDecoration(
+                          hintText: 'Pilih Tanggal Izin',
+                          hintStyle: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[400],
+                          ),
+                          filled: true,
+                          fillColor: const Color(0xFFF8F9FA),
+                          suffixIcon: const Icon(
+                            Icons.calendar_today,
+                            size: 20,
+                            color: Color(0xFF29B6F6),
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
 
                       // Deskripsi
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF5F5F5),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(
-                              Icons.description_outlined,
-                              size: 20,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          const Text(
-                            'Deskripsi/Alasan Izin',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ],
+                      const Text(
+                        'Deskripsi/Alasan Izin',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 8),
                       TextField(
                         controller: _descriptionController,
                         maxLines: 5,
@@ -453,50 +466,58 @@ Future<void> _handleRefresh() async {
                           contentPadding: const EdgeInsets.all(16),
                         ),
                       ),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 28),
 
                       // Tombol
                       Row(
                         children: [
                           Expanded(
-                            child: ElevatedButton(
-                              onPressed: _handleCancel,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFEF5350),
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                            child: SizedBox(
+                              height: 48,
+                              child: ElevatedButton(
+                                onPressed: _handleCancel,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(
+                                    0xFFE57373,
+                                  ), // 🔥 WARNA MERAH SAMA
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
                                 ),
-                                elevation: 0,
-                              ),
-                              child: const Text(
-                                'Batal',
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
+                                child: const Text(
+                                  'Batal',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: ElevatedButton(
-                              onPressed: _handleSubmit,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF42A5F5),
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                            child: SizedBox(
+                              height: 48,
+                              child: ElevatedButton(
+                                onPressed: _handleSubmit,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(
+                                    0xFF4FC3F7,
+                                  ), // 🔥 BIRU SAMA
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
                                 ),
-                                elevation: 0,
-                              ),
-                              child: const Text(
-                                'Submit',
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
+                                child: const Text(
+                                  'Submit',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ),
                             ),
@@ -508,9 +529,8 @@ Future<void> _handleRefresh() async {
                 ),
               ),
             ),
-            const SizedBox(height: 20),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

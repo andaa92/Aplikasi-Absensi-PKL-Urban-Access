@@ -144,10 +144,11 @@ class DashboardPageState extends State<DashboardPage> {
                         children: [
                           IconButton(
                             onPressed:
-                                () => showLogoutConfirmationPopup(
-                                  context,
-                                ), // 🔥 Pakai popup konfirmasi
-                            icon: const Icon(Icons.logout, color: Colors.white),
+                                () => showLogoutConfirmationPopup(context),
+                            icon: const Icon(
+                              Icons.power_settings_new,
+                              color: Colors.white,
+                            ), // 🔥 GANTI
                           ),
                           IconButton(
                             onPressed: refreshDashboard, // 🟢 pakai fungsi baru
@@ -1228,7 +1229,7 @@ void showLogoutConfirmationPopup(BuildContext context) {
 
                     // 📝 Judul
                     const Text(
-                      "Keluar Aplikasi?",
+                      "Mau kemana?",
                       style: TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.bold,
@@ -1251,7 +1252,7 @@ void showLogoutConfirmationPopup(BuildContext context) {
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: const Text(
-                        "Apakah kamu yakin ingin keluar?\nKamu harus login lagi nanti",
+                        "Apakah kamu yakin ingin logout?",
                         style: TextStyle(
                           fontSize: 15,
                           color: Colors.white,
@@ -1319,7 +1320,7 @@ void showLogoutConfirmationPopup(BuildContext context) {
                               shadowColor: Colors.black.withOpacity(0.3),
                             ),
                             child: const Text(
-                              "Ya, Keluar",
+                              "Iya, yakin",
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
