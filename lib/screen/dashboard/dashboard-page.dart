@@ -13,7 +13,6 @@ import 'dart:async';
 import 'package:percent_indicator/percent_indicator.dart';
 import 'package:ntp/ntp.dart';
 
-
 class DashboardPage extends StatefulWidget {
   const DashboardPage({Key? key}) : super(key: key);
 
@@ -74,254 +73,271 @@ class DashboardPageState extends State<DashboardPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
 
-      body: (futureDashboard == null)
-          ? const Center(child: CircularProgressIndicator())
-          : FutureBuilder<DashboardData>(
-              future: futureDashboard,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                } else if (snapshot.hasError) {
-                  return Center(
-                      child: Text("Gagal memuat data: ${snapshot.error}"));
-                } else if (!snapshot.hasData) {
-                  return const Center(child: Text("Tidak ada data"));
-                }
+      body:
+          (futureDashboard == null)
+              ? const Center(child: CircularProgressIndicator())
+              : FutureBuilder<DashboardData>(
+                future: futureDashboard,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  } else if (snapshot.hasError) {
+                    return Center(
+                      child: Text("Gagal memuat data: ${snapshot.error}"),
+                    );
+                  } else if (!snapshot.hasData) {
+                    return const Center(child: Text("Tidak ada data"));
+                  }
 
-                final data = snapshot.data!;
-                return _buildDashboardContent(context, data);
-              },
-            ),
+                  final data = snapshot.data!;
+                  return _buildDashboardContent(context, data);
+                },
+              ),
     );
   }
 
-
-
   Widget _buildDashboardContent(BuildContext context, DashboardData data) {
     // 🟢 tampilkan semua data (bukan cuma 3)
-    final recentHistory = (data.history
-    .where((h) {
-      final tanggal = DateTime.tryParse(h.tanggal);
-      if (tanggal == null) return false;
-      final now = DateTime.now();
-      final threeDaysAgo = now.subtract(const Duration(days: 3));
-      return tanggal.isAfter(threeDaysAgo) && tanggal.isBefore(now.add(const Duration(days: 1)));
-    })
-    .toList()
-      ..sort((a, b) => DateTime.parse(b.tanggal).compareTo(DateTime.parse(a.tanggal))))
-  .take(3)
-  .toList();
+    final recentHistory =
+        (data.history.where((h) {
+                final tanggal = DateTime.tryParse(h.tanggal);
+                if (tanggal == null) return false;
+                final now = DateTime.now();
+                final threeDaysAgo = now.subtract(const Duration(days: 3));
+                return tanggal.isAfter(threeDaysAgo) &&
+                    tanggal.isBefore(now.add(const Duration(days: 1)));
+              }).toList()
+              ..sort(
+                (a, b) => DateTime.parse(
+                  b.tanggal,
+                ).compareTo(DateTime.parse(a.tanggal)),
+              ))
+            .take(3)
+            .toList();
 
     return Column(
       children: [
         // ==== HEADER ====
-       Stack(
-  children: [
-    Container(
-      padding: const EdgeInsets.fromLTRB(20, 30, 20, 40),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF4FC3F7), Color(0xFF29B6F6)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(30),
-          bottomRight: Radius.circular(30),
-        ),
-      ),
-      child: Column(
-        children: [
-          // === Bar Atas ===
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Tombol Logout & Refresh
-              Row(
+        Stack(
+          children: [
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 30, 20, 40),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF4FC3F7), Color(0xFF29B6F6)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(30),
+                  bottomRight: Radius.circular(30),
+                ),
+              ),
+              child: Column(
                 children: [
-                  IconButton(
-                    onPressed: () {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => const LandingPage()),
-                      );
-                    },
-                    icon: const Icon(Icons.logout, color: Colors.white),
+                  // === Bar Atas ===
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Tombol Logout & Refresh
+                      Row(
+                        children: [
+                          IconButton(
+                            onPressed:
+                                () => showLogoutConfirmationPopup(
+                                  context,
+                                ), // 🔥 Pakai popup konfirmasi
+                            icon: const Icon(Icons.logout, color: Colors.white),
+                          ),
+                          IconButton(
+                            onPressed: refreshDashboard, // 🟢 pakai fungsi baru
+                            icon: const Icon(
+                              Icons.refresh,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      // Nama & Profil
+                      Row(
+                        children: [
+                          FutureBuilder<String?>(
+                            future: _getUserName(),
+                            builder: (context, snapshot) {
+                              String namaUser = snapshot.data ?? 'User';
+                              List<String> parts = namaUser.split(' ');
+                              if (parts.length > 2) {
+                                namaUser = '${parts[0]} ${parts[1]}';
+                              }
+
+                              return Text(
+                                namaUser,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(width: 10),
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (context) =>
+                                          const MainPage(initialIndex: 2),
+                                ),
+                              );
+                            },
+                            child: const Icon(
+                              Icons.account_circle,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                  IconButton(
-                    onPressed: refreshDashboard, // 🟢 pakai fungsi baru
-                    icon: const Icon(Icons.refresh, color: Colors.white),
+
+                  const SizedBox(height: 20),
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Dashboard',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      DateFormat("d MMMM yyyy", "id_ID").format(DateTime.now()),
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                      ),
+                    ),
                   ),
                 ],
               ),
-
-              // Nama & Profil
-              Row(
-                children: [
-                  FutureBuilder<String?>(
-                    future: _getUserName(),
-                    builder: (context, snapshot) {
-                      String namaUser = snapshot.data ?? 'User';
-                      List<String> parts = namaUser.split(' ');
-                      if (parts.length > 2) {
-                        namaUser = '${parts[0]} ${parts[1]}';
-                      }
-
-                      return Text(
-                        namaUser,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      );
-                    },
+            ),
+            // 🔹 LINGKARAN GELEMBUNG DEKORASI
+            Positioned(
+              top: 40,
+              right: 25,
+              child: IgnorePointer(
+                child: Container(
+                  width: 90,
+                  height: 90,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withOpacity(0.1),
                   ),
-                  const SizedBox(width: 10),
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) =>
-                                const MainPage(initialIndex: 2)),
-                      );
-                    },
-                    child: const Icon(Icons.account_circle,
-                        color: Colors.white),
-                  ),
-                ],
+                ),
               ),
-            ],
-          ),
-
-          const SizedBox(height: 20),
-          const Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'Dashboard',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold),
             ),
-          ),
-          const SizedBox(height: 5),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              DateFormat("d MMMM yyyy", "id_ID").format(DateTime.now()),
-              style:
-                  const TextStyle(color: Colors.white70, fontSize: 14),
-            ),
-          ),
-        ],
-      ),
-    ),
-    // 🔹 LINGKARAN GELEMBUNG DEKORASI
-    Positioned(
-      top: 40,
-      right: 25,
-      child: IgnorePointer(
-      child: Container(
-        width: 90,
-        height: 90,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.white.withOpacity(0.1),
-        ),
-      ),
-     ),
-    ),
 
-     Positioned(
-      top: 40,
-      right: 25,
-      child: IgnorePointer( // ✅ Tambahkan ini agar tidak block touch
-        child: Container(
-          width: 90,
-          height: 90,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.white.withOpacity(0.1),
-          ),
+            Positioned(
+              top: 40,
+              right: 25,
+              child: IgnorePointer(
+                // ✅ Tambahkan ini agar tidak block touch
+                child: Container(
+                  width: 90,
+                  height: 90,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withOpacity(0.1),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 100,
+              right: 50,
+              child: IgnorePointer(
+                // ✅ Tambahkan ini
+                child: Container(
+                  width: 55,
+                  height: 55,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withOpacity(0.08),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 80,
+              left: 35,
+              child: IgnorePointer(
+                // ✅ Tambahkan ini
+                child: Container(
+                  width: 70,
+                  height: 70,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withOpacity(0.12),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 30,
+              left: 70,
+              child: IgnorePointer(
+                // ✅ Tambahkan ini
+                child: Container(
+                  width: 45,
+                  height: 45,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withOpacity(0.07),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 140,
+              left: 100,
+              child: IgnorePointer(
+                // ✅ Tambahkan ini
+                child: Container(
+                  width: 35,
+                  height: 35,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withOpacity(0.09),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 30,
+              right: 80,
+              child: IgnorePointer(
+                // ✅ Tambahkan ini
+                child: Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withOpacity(0.06),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
-      ),
-    ),
-    Positioned(
-      top: 100,
-      right: 50,
-      child: IgnorePointer( // ✅ Tambahkan ini
-        child: Container(
-          width: 55,
-          height: 55,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.white.withOpacity(0.08),
-          ),
-        ),
-      ),
-    ),
-    Positioned(
-      top: 80,
-      left: 35,
-      child: IgnorePointer( // ✅ Tambahkan ini
-        child: Container(
-          width: 70,
-          height: 70,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.white.withOpacity(0.12),
-          ),
-        ),
-      ),
-    ),
-    Positioned(
-      top: 30,
-      left: 70,
-      child: IgnorePointer( // ✅ Tambahkan ini
-        child: Container(
-          width: 45,
-          height: 45,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.white.withOpacity(0.07),
-          ),
-        ),
-      ),
-    ),
-    Positioned(
-      top: 140,
-      left: 100,
-      child: IgnorePointer( // ✅ Tambahkan ini
-        child: Container(
-          width: 35,
-          height: 35,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.white.withOpacity(0.09),
-          ),
-        ),
-      ),
-    ),
-    Positioned(
-      bottom: 30,
-      right: 80,
-      child: IgnorePointer( // ✅ Tambahkan ini
-        child: Container(
-          width: 50,
-          height: 50,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.white.withOpacity(0.06),
-          ),
-        ),
-      ),
-    ),
-  ],
-),
 
         // ==== CONTENT ====
         Expanded(
@@ -336,18 +352,20 @@ class DashboardPageState extends State<DashboardPage> {
                     children: [
                       Expanded(
                         child: _buildStatCard(
-                            "${data.hadir}",
-                            'Hadir Tepat Waktu',
-                            Icons.check_circle,
-                            const Color(0xFF4CAF50)),
+                          "${data.hadir}",
+                          'Hadir Tepat Waktu',
+                          Icons.check_circle,
+                          const Color(0xFF4CAF50),
+                        ),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: _buildStatCard(
-                            "${data.terlambat}",
-                            'Terlambat',
-                            Icons.cancel,
-                            const Color(0xFFE57373)),
+                          "${data.terlambat}",
+                          'Terlambat',
+                          Icons.cancel,
+                          const Color(0xFFE57373),
+                        ),
                       ),
                     ],
                   ),
@@ -355,28 +373,36 @@ class DashboardPageState extends State<DashboardPage> {
                   Row(
                     children: [
                       Expanded(
-                        child: _buildStatCard("${data.izin}", 'Izin',
-                            Icons.error, const Color(0xFFFFD54F)),
+                        child: _buildStatCard(
+                          "${data.izin}",
+                          'Izin',
+                          Icons.error,
+                          const Color(0xFFFFD54F),
+                        ),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
-                        child: _buildStatCard("${data.sakit}", 'Sakit',
-                            Icons.medical_services,
-                            const Color(0xFFFF8A65)),
+                        child: _buildStatCard(
+                          "${data.sakit}",
+                          'Sakit',
+                          Icons.medical_services,
+                          const Color(0xFFFF8A65),
+                        ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 25),
 
                   // === Progress Waktu Kerja ===
-                   const SizedBox(height: 10),
+                  const SizedBox(height: 10),
                   Center(
                     child: CircularPercentIndicator(
                       radius: 90.0,
                       lineWidth: 12.0,
                       percent: _progress.clamp(0.0, 1.0),
                       circularStrokeCap: CircularStrokeCap.round,
-                      progressColor: _timerColor, // 🔥 otomatis sesuai sisa waktu
+                      progressColor:
+                          _timerColor, // 🔥 otomatis sesuai sisa waktu
                       backgroundColor: Colors.grey.shade300,
                       center: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -386,7 +412,8 @@ class DashboardPageState extends State<DashboardPage> {
                             style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.bold,
-                              color: _timerColor, // 🔥 teks waktu ikut berubah warna juga
+                              color:
+                                  _timerColor, // 🔥 teks waktu ikut berubah warna juga
                             ),
                           ),
                           const SizedBox(height: 6),
@@ -400,28 +427,32 @@ class DashboardPageState extends State<DashboardPage> {
                   ),
 
                   const SizedBox(height: 25),
-              
+
                   // === Metode Absen ===
                   const Text(
-                      'Silahkan Lakukan Absensi :',
-                      style: TextStyle(fontSize: 14, color: Colors.black54),
-                    ),
-                    const SizedBox(height: 15),
-                   Row(
+                    'Silahkan Lakukan Absensi :',
+                    style: TextStyle(fontSize: 14, color: Colors.black54),
+                  ),
+                  const SizedBox(height: 15),
+                  Row(
                     children: [
                       Expanded(
-                        child: _buildMethodCard('Absen Sekarang', Icons.access_time, _absenManual),
-                        
+                        child: _buildMethodCard(
+                          'Absen Sekarang',
+                          Icons.access_time,
+                          _absenManual,
+                        ),
                       ),
                       const SizedBox(width: 15),
                       Expanded(
-                        child: _buildMethodCard('Absen Pulang', Icons.logout, _absenPulang),
+                        child: _buildMethodCard(
+                          'Absen Pulang',
+                          Icons.logout,
+                          _absenPulang,
+                        ),
                       ),
                     ],
                   ),
-
-
-
 
                   const SizedBox(height: 25),
 
@@ -440,7 +471,8 @@ class DashboardPageState extends State<DashboardPage> {
                           () => Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (context) => const FormIzin()),
+                              builder: (context) => const FormIzin(),
+                            ),
                           ),
                         ),
                       ),
@@ -452,7 +484,8 @@ class DashboardPageState extends State<DashboardPage> {
                           () => Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (context) => const FormSakit()),
+                              builder: (context) => const FormSakit(),
+                            ),
                           ),
                         ),
                       ),
@@ -468,24 +501,27 @@ class DashboardPageState extends State<DashboardPage> {
                       const Text(
                         'Riwayat Absen :',
                         style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
                       ),
                       TextButton(
                         onPressed: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (context) =>
-                                    const MainPage(initialIndex: 0)),
+                              builder:
+                                  (context) => const MainPage(initialIndex: 0),
+                            ),
                           );
                         },
                         child: const Text(
                           'Lihat Semua',
                           style: TextStyle(
-                              color: Color(0xFF29B6F6),
-                              fontWeight: FontWeight.w600),
+                            color: Color(0xFF29B6F6),
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ],
@@ -493,17 +529,16 @@ class DashboardPageState extends State<DashboardPage> {
                   const SizedBox(height: 10),
 
                   // === Tampilkan semua data dari API ===
-                 // === Tampilkan hanya weekday (Senin–Jumat) ===
-                for (var history in recentHistory)
-                  if (_isWeekday(history.tanggal))
-                    _buildHistoryCard(
-                      history.tanggal,
-                      history.keterangan,
-                      history.masuk,
-                      history.keluar,
-                      history.status,
-                    ),
-
+                  // === Tampilkan hanya weekday (Senin–Jumat) ===
+                  for (var history in recentHistory)
+                    if (_isWeekday(history.tanggal))
+                      _buildHistoryCard(
+                        history.tanggal,
+                        history.keterangan,
+                        history.masuk,
+                        history.keluar,
+                        history.status,
+                      ),
                 ],
               ),
             ),
@@ -514,309 +549,312 @@ class DashboardPageState extends State<DashboardPage> {
   }
 
   Future<bool> checkFakeLocation(BuildContext context) async {
-  try {
-    final position = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
-    );
-
-    if (position.isMocked) {
-      await showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) {
-          return const FakeLocationDialog(); // gunakan ini
-        },
+    try {
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
       );
-      return true;
+
+      if (position.isMocked) {
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) {
+            return const FakeLocationDialog(); // gunakan ini
+          },
+        );
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('❌ Error saat deteksi lokasi palsu: $e');
+      return false;
     }
-    return false;
-  } catch (e) {
-    debugPrint('❌ Error saat deteksi lokasi palsu: $e');
-    return false;
   }
-}
 
+  Future<void> _absenManual() async {
+    try {
+      // 🛑 Cek fake GPS sebelum lanjut
+      bool isFake = await checkFakeLocation(context);
+      if (isFake) return;
 
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Layanan lokasi tidak aktif")),
+        );
+        return;
+      }
 
-
-
- Future<void> _absenManual() async {
-  try {
-    // 🛑 Cek fake GPS sebelum lanjut
-    bool isFake = await checkFakeLocation(context);
-    if (isFake) return;
-
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Layanan lokasi tidak aktif")),
-      );
-      return;
-    }
-
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
+      LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text("Izin lokasi ditolak")));
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Izin lokasi ditolak")),
+          const SnackBar(content: Text("Izin lokasi ditolak permanen")),
         );
         return;
       }
-    }
 
-    if (permission == LocationPermission.deniedForever) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Izin lokasi ditolak permanen")),
+      // ✅ Ambil posisi setelah lolos pengecekan
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
       );
-      return;
-    }
 
-    // ✅ Ambil posisi setelah lolos pengecekan
-    Position position = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
-    );
+      const double officeLatitude = -6.947716562093121;
+      const double officeLongitude = 107.6271448595231;
 
-    const double officeLatitude = -6.947716562093121;
-    const double officeLongitude = 107.6271448595231;
+      double distance = Geolocator.distanceBetween(
+        position.latitude,
+        position.longitude,
+        officeLatitude,
+        officeLongitude,
+      );
 
-    double distance = Geolocator.distanceBetween(
-      position.latitude,
-      position.longitude,
-      officeLatitude,
-      officeLongitude,
-    );
+      if (distance <= 50) {
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        String? userEmail = prefs.getString('email');
 
-    if (distance <= 50) {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      String? userEmail = prefs.getString('email');
+        if (userEmail == null || userEmail.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Email tidak ditemukan, silakan login ulang."),
+            ),
+          );
+          return;
+        }
 
-      if (userEmail == null || userEmail.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Email tidak ditemukan, silakan login ulang.")),
-        );
-        return;
-      }
+        final response = await apiService.absenMasukSiswa(userEmail);
 
-      final response = await apiService.absenMasukSiswa(userEmail);
-
-      if (response['statusCode'] == 200) {
-       showSuccessPopup(context, response['msg']);
-        await refreshDashboard();
+        if (response['statusCode'] == 200) {
+          showSuccessPopup(context, response['msg']);
+          await refreshDashboard();
+        } else {
+          showErrorPopup(context, response['msg'] ?? 'Gagal absen pulang');
+        }
       } else {
-        showErrorPopup(context, response['msg'] ?? 'Gagal absen pulang');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "Anda di luar area absensi (${distance.toStringAsFixed(1)} m)",
+            ),
+          ),
+        );
       }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Anda di luar area absensi (${distance.toStringAsFixed(1)} m)")),
-      );
+    } catch (e) {
+      print("❌ Error absen manual: $e");
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Terjadi kesalahan: $e")));
     }
-  } catch (e) {
-    print("❌ Error absen manual: $e");
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Terjadi kesalahan: $e")),
-    );
   }
-}
 
+  Future<void> _absenPulang() async {
+    try {
+      // 🕔 Cek waktu sekarang
+      DateTime now = DateTime.now();
+      if (now.hour < 17) {
+        // ✨ GANTI dengan popup menarik
+        showWaktuBelumCukupPopup(context);
+        return; // ⛔ Stop di sini kalau belum jam 17.00
+      }
 
+      // 🛑 Cek fake GPS sebelum lanjut
+      bool isFake = await checkFakeLocation(context);
+      if (isFake) return;
 
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Layanan lokasi tidak aktif")),
+        );
+        return;
+      }
 
-
-Future<void> _absenPulang() async {
-  try {
-    // 🕔 Cek waktu sekarang
-    DateTime now = DateTime.now();
-    if (now.hour < 17) {
-      // ✨ GANTI dengan popup menarik
-      showWaktuBelumCukupPopup(context);
-      return; // ⛔ Stop di sini kalau belum jam 17.00
-    }
-    
-    // 🛑 Cek fake GPS sebelum lanjut
-    bool isFake = await checkFakeLocation(context);
-    if (isFake) return;
-    
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Layanan lokasi tidak aktif")),
-      );
-      return;
-    }
-    
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
+      LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text("Izin lokasi ditolak")));
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Izin lokasi ditolak")),
+          const SnackBar(content: Text("Izin lokasi ditolak permanen")),
         );
         return;
       }
-    }
-    
-    if (permission == LocationPermission.deniedForever) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Izin lokasi ditolak permanen")),
+
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
       );
-      return;
-    }
-    
-    Position position = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
-    );
-    
-    const double officeLatitude = -6.947716562093121;
-    const double officeLongitude = 107.6271448595231;
-    double distance = Geolocator.distanceBetween(
-      position.latitude,
-      position.longitude,
-      officeLatitude,
-      officeLongitude,
-    );
-    
-    if (distance <= 50) {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      String? userEmail = prefs.getString('email');
-      
-      if (userEmail == null || userEmail.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Email tidak ditemukan, silakan login ulang.")),
-        );
-        return;
-      }
-      
-      final response = await apiService.absenPulangSiswa(userEmail);
-      
-      if (response['statusCode'] == 200) {
-        showSuccessPopup(context, response['msg']);
-        await refreshDashboard();
+
+      const double officeLatitude = -6.947716562093121;
+      const double officeLongitude = 107.6271448595231;
+      double distance = Geolocator.distanceBetween(
+        position.latitude,
+        position.longitude,
+        officeLatitude,
+        officeLongitude,
+      );
+
+      if (distance <= 50) {
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        String? userEmail = prefs.getString('email');
+
+        if (userEmail == null || userEmail.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Email tidak ditemukan, silakan login ulang."),
+            ),
+          );
+          return;
+        }
+
+        final response = await apiService.absenPulangSiswa(userEmail);
+
+        if (response['statusCode'] == 200) {
+          showSuccessPopup(context, response['msg']);
+          await refreshDashboard();
+        } else {
+          showErrorPopup(context, response['msg'] ?? 'Gagal absen pulang');
+        }
       } else {
-        showErrorPopup(context, response['msg'] ?? 'Gagal absen pulang');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "Anda di luar area absensi (${distance.toStringAsFixed(1)} m)",
+            ),
+          ),
+        );
       }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Anda di luar area absensi (${distance.toStringAsFixed(1)} m)")),
-      );
+    } catch (e) {
+      print("❌ Error absen pulang: $e");
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Terjadi kesalahan: $e")));
     }
-  } catch (e) {
-    print("❌ Error absen pulang: $e");
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Terjadi kesalahan: $e")),
+  }
+
+  Timer? _timer;
+  Duration _remainingTime = Duration.zero;
+  double _progress = 1.0;
+  Color _timerColor = Colors.green; // Warna awal: hijau
+
+  void startWorkTimer() async {
+    const startHour = 8;
+    const endHour = 17;
+
+    DateTime ntpTime;
+    try {
+      ntpTime = await NTP.now();
+    } catch (e) {
+      ntpTime = DateTime.now(); // fallback kalau gagal
+    }
+
+    DateTime localTime = DateTime.now();
+    Duration offset = ntpTime.difference(localTime);
+
+    final startTime = DateTime(
+      ntpTime.year,
+      ntpTime.month,
+      ntpTime.day,
+      startHour,
     );
-  }
-}
+    final endTime = DateTime(ntpTime.year, ntpTime.month, ntpTime.day, endHour);
+    final totalDuration = endTime.difference(startTime).inSeconds;
 
+    _timer?.cancel(); // hentikan timer lama sebelum buat baru
 
-
-Timer? _timer;
-Duration _remainingTime = Duration.zero;
-double _progress = 1.0;
-Color _timerColor = Colors.green; // Warna awal: hijau
-
-void startWorkTimer() async {
-  const startHour = 8;
-  const endHour = 17;
-
-  DateTime ntpTime;
-  try {
-    ntpTime = await NTP.now();
-  } catch (e) {
-    ntpTime = DateTime.now(); // fallback kalau gagal
-  }
-
-  DateTime localTime = DateTime.now();
-  Duration offset = ntpTime.difference(localTime);
-
-  final startTime = DateTime(ntpTime.year, ntpTime.month, ntpTime.day, startHour);
-  final endTime = DateTime(ntpTime.year, ntpTime.month, ntpTime.day, endHour);
-  final totalDuration = endTime.difference(startTime).inSeconds;
-
-  _timer?.cancel(); // hentikan timer lama sebelum buat baru
-
-  // 🔹 Update awal sekali
-  if (!mounted) return;
-  setState(() {
-    DateTime current = DateTime.now().add(offset);
-    final remainingSeconds = endTime.difference(current).inSeconds;
-    _remainingTime = Duration(seconds: remainingSeconds.clamp(0, totalDuration));
-    _progress = remainingSeconds > 0 ? remainingSeconds / totalDuration : 0;
-    _timerColor = remainingSeconds > 4 * 3600
-        ? Colors.green
-        : remainingSeconds > 2 * 3600
-            ? Colors.yellow
-            : Colors.red;
-  });
-
-  // 🔁 Timer setiap detik
-  _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-    if (!mounted) return; // Cegah update kalau widget sudah dispose
-
-    DateTime current = DateTime.now().add(offset);
-
-    if (current.isBefore(startTime)) {
-      setState(() {
-        _remainingTime = endTime.difference(startTime);
-        _progress = 1.0;
-        _timerColor = Colors.grey;
-      });
-      return;
-    }
-
-    if (current.isAfter(endTime)) {
-      timer.cancel();
-      setState(() {
-        _remainingTime = Duration.zero;
-        _progress = 0.0;
-        _timerColor = Colors.red;
-      });
-      return;
-    }
-
-    final remainingSeconds = endTime.difference(current).inSeconds;
-    final progress = remainingSeconds / totalDuration;
-
-    Color color;
-    if (remainingSeconds > 4 * 3600) {
-      color = Colors.green;
-    } else if (remainingSeconds > 2 * 3600) {
-      color = Colors.yellow;
-    } else {
-      color = Colors.red;
-    }
-
+    // 🔹 Update awal sekali
+    if (!mounted) return;
     setState(() {
-      _remainingTime = Duration(seconds: remainingSeconds);
-      _progress = progress;
-      _timerColor = color;
+      DateTime current = DateTime.now().add(offset);
+      final remainingSeconds = endTime.difference(current).inSeconds;
+      _remainingTime = Duration(
+        seconds: remainingSeconds.clamp(0, totalDuration),
+      );
+      _progress = remainingSeconds > 0 ? remainingSeconds / totalDuration : 0;
+      _timerColor =
+          remainingSeconds > 4 * 3600
+              ? Colors.green
+              : remainingSeconds > 2 * 3600
+              ? Colors.yellow
+              : Colors.red;
     });
-  });
-}
 
+    // 🔁 Timer setiap detik
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return; // Cegah update kalau widget sudah dispose
 
+      DateTime current = DateTime.now().add(offset);
 
+      if (current.isBefore(startTime)) {
+        setState(() {
+          _remainingTime = endTime.difference(startTime);
+          _progress = 1.0;
+          _timerColor = Colors.grey;
+        });
+        return;
+      }
 
+      if (current.isAfter(endTime)) {
+        timer.cancel();
+        setState(() {
+          _remainingTime = Duration.zero;
+          _progress = 0.0;
+          _timerColor = Colors.red;
+        });
+        return;
+      }
 
+      final remainingSeconds = endTime.difference(current).inSeconds;
+      final progress = remainingSeconds / totalDuration;
 
-// 🧹 Tambahkan ini di dalam State class (bukan di luar)
-@override
-void dispose() {
-  _timer?.cancel(); // pastikan timer berhenti saat halaman ditutup
-  _timer = null;
-  super.dispose();
-}
+      Color color;
+      if (remainingSeconds > 4 * 3600) {
+        color = Colors.green;
+      } else if (remainingSeconds > 2 * 3600) {
+        color = Colors.yellow;
+      } else {
+        color = Colors.red;
+      }
 
+      setState(() {
+        _remainingTime = Duration(seconds: remainingSeconds);
+        _progress = progress;
+        _timerColor = color;
+      });
+    });
+  }
 
-
-
-
-
+  // 🧹 Tambahkan ini di dalam State class (bukan di luar)
+  @override
+  void dispose() {
+    _timer?.cancel(); // pastikan timer berhenti saat halaman ditutup
+    _timer = null;
+    super.dispose();
+  }
 
   // ==== COMPONENTS ====
 
   Widget _buildStatCard(
-      String count, String label, IconData icon, Color color) {
+    String count,
+    String label,
+    IconData icon,
+    Color color,
+  ) {
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -826,7 +864,7 @@ void dispose() {
           ),
         );
       },
-      
+
       child: Container(
         padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
@@ -846,41 +884,46 @@ void dispose() {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(count,
-                    style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87)),
+                Text(
+                  count,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
                 Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: color.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(icon, color: color, size: 20))
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(icon, color: color, size: 20),
+                ),
               ],
             ),
             const SizedBox(height: 8),
             Align(
-                alignment: Alignment.centerLeft,
-                child: Text(label,
-                    style: const TextStyle(
-                        fontSize: 12, color: Colors.black54))),
+              alignment: Alignment.centerLeft,
+              child: Text(
+                label,
+                style: const TextStyle(fontSize: 12, color: Colors.black54),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
-  
-  bool _isWeekday(String tanggal) {
-  try {
-    final date = DateTime.parse(tanggal);
-    return date.weekday >= 1 && date.weekday <= 5; // 1=Senin, 7=Minggu
-  } catch (e) {
-    return true; // kalau parsing gagal, biar tidak error tampilkan saja
-  }
-}
 
+  bool _isWeekday(String tanggal) {
+    try {
+      final date = DateTime.parse(tanggal);
+      return date.weekday >= 1 && date.weekday <= 5; // 1=Senin, 7=Minggu
+    } catch (e) {
+      return true; // kalau parsing gagal, biar tidak error tampilkan saja
+    }
+  }
 
   // Added method card for choosing absen method (Finger / Face)
   Widget _buildMethodCard(String title, IconData icon, VoidCallback onTap) {
@@ -913,7 +956,10 @@ void dispose() {
             Text(
               title,
               style: const TextStyle(
-                  fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87),
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
             ),
           ],
         ),
@@ -930,14 +976,20 @@ void dispose() {
         style: ElevatedButton.styleFrom(
           backgroundColor: color,
           elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
               title,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
             ),
           ],
         ),
@@ -945,10 +997,13 @@ void dispose() {
     );
   }
 
-  
-
-  Widget _buildHistoryCard(String date, String description, String masuk,
-      String keluar, String status) {
+  Widget _buildHistoryCard(
+    String date,
+    String description,
+    String masuk,
+    String keluar,
+    String status,
+  ) {
     String formatTanggal(String tgl) {
       try {
         final DateTime parsed = DateTime.parse(tgl);
@@ -957,9 +1012,6 @@ void dispose() {
         return tgl;
       }
     }
-
-
-
 
     Color cardColor;
     IconData iconData;
@@ -998,68 +1050,94 @@ void dispose() {
         padding: const EdgeInsets.all(15),
         margin: const EdgeInsets.only(bottom: 10),
         decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(15),
-            boxShadow: [
-              BoxShadow(
-                  color: Colors.grey.withOpacity(0.1),
-                  spreadRadius: 1,
-                  blurRadius: 5,
-                  offset: const Offset(0, 2))
-            ]),
-        child: Row(children: [
-          Container(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(15),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              spreadRadius: 1,
+              blurRadius: 5,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: cardColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(iconData, color: cardColor, size: 24)),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
+              child: Icon(iconData, color: cardColor, size: 24),
+            ),
+            const SizedBox(width: 15),
+            Expanded(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(formatTanggal(date),
-                      style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87)),
+                  Text(
+                    formatTanggal(date),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
                   const SizedBox(height: 4),
-                  Text("Keterangan : \n$description",
-                      style: const TextStyle(
-                          fontSize: 12, color: Colors.black54)),
+                  Text(
+                    "Keterangan : \n$description",
+                    style: const TextStyle(fontSize: 12, color: Colors.black54),
+                  ),
                   const SizedBox(height: 8),
-                  Row(children: [
-                    Expanded(
-                        child: Text("Masuk: $masuk",
-                            style: const TextStyle(
-                                fontSize: 11, color: Colors.black45))),
-                    Expanded(
-                        child: Text("Keluar: $keluar",
-                            style: const TextStyle(
-                                fontSize: 11, color: Colors.black45))),
-                  ])
-                ]),
-          ),
-          const SizedBox(width: 10),
-          Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          "Masuk: $masuk",
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.black45,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          "Keluar: $keluar",
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.black45,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 color: cardColor.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Text(status,
-                  style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: cardColor)))
-        ]),
+              child: Text(
+                status,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: cardColor,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
+
 String _formatDuration(Duration duration) {
   String twoDigits(int n) => n.toString().padLeft(2, "0");
   final hours = twoDigits(duration.inHours);
@@ -1077,10 +1155,194 @@ void showSuccessPopup(BuildContext context, String message) {
   );
 }
 
+void showLogoutConfirmationPopup(BuildContext context) {
+  showDialog(
+    context: context,
+    barrierDismissible: true,
+    barrierColor: Colors.black.withOpacity(0.7),
+    builder: (BuildContext context) {
+      return Dialog(
+        backgroundColor: Colors.transparent,
+        child: TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0.0, end: 1.0),
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.elasticOut,
+          builder: (context, value, child) {
+            return Transform.scale(
+              scale: value,
+              child: Container(
+                padding: const EdgeInsets.all(28),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF4FC3F7), Color(0xFF29B6F6)],
+                  ),
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.blue.withOpacity(0.5),
+                      blurRadius: 30,
+                      spreadRadius: 5,
+                      offset: const Offset(0, 15),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // 🚪 Icon Logout dengan Animasi
+                    TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0.0, end: 1.0),
+                      duration: const Duration(milliseconds: 600),
+                      builder: (context, iconValue, child) {
+                        return Transform.translate(
+                          offset: Offset((1 - iconValue) * 50, 0),
+                          child: Opacity(
+                            opacity: iconValue,
+                            child: Container(
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.3),
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.white.withOpacity(0.3),
+                                    blurRadius: 20,
+                                    spreadRadius: 5,
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.logout_rounded,
+                                size: 50,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // 📝 Judul
+                    const Text(
+                      "Keluar Aplikasi?",
+                      style: TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        letterSpacing: 0.5,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // 💬 Pesan
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 14,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Text(
+                        "Apakah kamu yakin ingin keluar?\nKamu harus login lagi nanti",
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: Colors.white,
+                          height: 1.5,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+
+                    const SizedBox(height: 28),
+
+                    // 🔘 Tombol Action
+                    Row(
+                      children: [
+                        // Tombol Batal
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white.withOpacity(0.3),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                side: BorderSide(
+                                  color: Colors.white.withOpacity(0.5),
+                                  width: 2,
+                                ),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: const Text(
+                              "Batal",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(width: 12),
+
+                        // Tombol Keluar
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.of(context).pop(); // tutup dialog
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const LandingPage(),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: const Color(0xFF29B6F6),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              elevation: 8,
+                              shadowColor: Colors.black.withOpacity(0.3),
+                            ),
+                            child: const Text(
+                              "Ya, Keluar",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      );
+    },
+  );
+}
 
 class _SuccessPopup extends StatefulWidget {
   final String message;
-  
+
   const _SuccessPopup({required this.message});
 
   @override
@@ -1093,7 +1355,7 @@ class _SuccessPopupState extends State<_SuccessPopup>
   late AnimationController _checkController;
   late AnimationController _rippleController;
   late AnimationController _fadeController;
-  
+
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
   late Animation<double> _rippleAnimation;
@@ -1102,7 +1364,7 @@ class _SuccessPopupState extends State<_SuccessPopup>
   @override
   void initState() {
     super.initState();
-    
+
     // Controller untuk scale popup
     _scaleController = AnimationController(
       duration: const Duration(milliseconds: 500),
@@ -1140,10 +1402,7 @@ class _SuccessPopupState extends State<_SuccessPopup>
     );
 
     _rippleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _rippleController,
-        curve: Curves.easeOut,
-      ),
+      CurvedAnimation(parent: _rippleController, curve: Curves.easeOut),
     );
 
     _checkAnimation = CurvedAnimation(
@@ -1153,7 +1412,7 @@ class _SuccessPopupState extends State<_SuccessPopup>
 
     // Sequence animasi
     _scaleController.forward();
-    
+
     Future.delayed(const Duration(milliseconds: 200), () {
       if (mounted) {
         _checkController.forward();
@@ -1281,7 +1540,7 @@ class _SuccessPopupState extends State<_SuccessPopup>
                   ],
                 ),
                 const SizedBox(height: 28),
-                
+
                 // Text sukses
                 Text(
                   'Berhasil!',
@@ -1294,7 +1553,7 @@ class _SuccessPopupState extends State<_SuccessPopup>
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 12),
-                
+
                 // Message
                 Text(
                   widget.message,
@@ -1315,7 +1574,6 @@ class _SuccessPopupState extends State<_SuccessPopup>
   }
 }
 
-
 void showErrorPopup(BuildContext context, String message) {
   showDialog(
     context: context,
@@ -1325,10 +1583,9 @@ void showErrorPopup(BuildContext context, String message) {
   );
 }
 
-
 class _ErrorPopup extends StatefulWidget {
   final String message;
-  
+
   const _ErrorPopup({required this.message});
 
   @override
@@ -1342,7 +1599,7 @@ class _ErrorPopupState extends State<_ErrorPopup>
   late AnimationController _rippleController;
   late AnimationController _fadeController;
   late AnimationController _shakeController;
-  
+
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
   late Animation<double> _rippleAnimation;
@@ -1352,7 +1609,7 @@ class _ErrorPopupState extends State<_ErrorPopup>
   @override
   void initState() {
     super.initState();
-    
+
     // Controller untuk scale popup
     _scaleController = AnimationController(
       duration: const Duration(milliseconds: 500),
@@ -1396,10 +1653,7 @@ class _ErrorPopupState extends State<_ErrorPopup>
     );
 
     _rippleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _rippleController,
-        curve: Curves.easeOut,
-      ),
+      CurvedAnimation(parent: _rippleController, curve: Curves.easeOut),
     );
 
     _iconAnimation = CurvedAnimation(
@@ -1408,15 +1662,12 @@ class _ErrorPopupState extends State<_ErrorPopup>
     );
 
     _shakeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _shakeController,
-        curve: Curves.elasticInOut,
-      ),
+      CurvedAnimation(parent: _shakeController, curve: Curves.elasticInOut),
     );
 
     // Sequence animasi
     _scaleController.forward();
-    
+
     Future.delayed(const Duration(milliseconds: 200), () {
       if (mounted) {
         _iconController.forward();
@@ -1463,7 +1714,7 @@ class _ErrorPopupState extends State<_ErrorPopup>
               } else {
                 shake = (1 - _shakeAnimation.value) * 20 - 5;
               }
-              
+
               return Transform.translate(
                 offset: Offset(shake * 0.3, 0),
                 child: child,
@@ -1562,7 +1813,7 @@ class _ErrorPopupState extends State<_ErrorPopup>
                     ],
                   ),
                   const SizedBox(height: 28),
-                  
+
                   // Text gagal
                   Text(
                     'Gagal!',
@@ -1575,7 +1826,7 @@ class _ErrorPopupState extends State<_ErrorPopup>
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 12),
-                  
+
                   // Message
                   Text(
                     widget.message,
@@ -1596,6 +1847,7 @@ class _ErrorPopupState extends State<_ErrorPopup>
     );
   }
 }
+
 void showWaktuBelumCukupPopup(BuildContext context) {
   showDialog(
     context: context,
@@ -1653,9 +1905,9 @@ void showWaktuBelumCukupPopup(BuildContext context) {
                         );
                       },
                     ),
-                    
+
                     const SizedBox(height: 20),
-                    
+
                     // 📝 Judul
                     const Text(
                       "Belum Waktunya! ⏰",
@@ -1666,9 +1918,9 @@ void showWaktuBelumCukupPopup(BuildContext context) {
                       ),
                       textAlign: TextAlign.center,
                     ),
-                    
+
                     const SizedBox(height: 12),
-                    
+
                     // 💬 Pesan
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -1689,9 +1941,9 @@ void showWaktuBelumCukupPopup(BuildContext context) {
                         textAlign: TextAlign.center,
                       ),
                     ),
-                    
+
                     const SizedBox(height: 8),
-                    
+
                     // ⏱️ Waktu sekarang
                     Text(
                       "Sekarang: ${TimeOfDay.now().format(context)}",
@@ -1701,15 +1953,20 @@ void showWaktuBelumCukupPopup(BuildContext context) {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    
+
                     const SizedBox(height: 20),
-                    
+
                     // 🔘 Tombol OK
                     ElevatedButton(
                       onPressed: () => Navigator.of(context).pop(),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
-                        foregroundColor: const Color.fromARGB(255, 53, 159, 246),
+                        foregroundColor: const Color.fromARGB(
+                          255,
+                          53,
+                          159,
+                          246,
+                        ),
                         padding: const EdgeInsets.symmetric(
                           horizontal: 40,
                           vertical: 12,

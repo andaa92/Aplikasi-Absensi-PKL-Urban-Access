@@ -93,16 +93,18 @@ class _ProfilePageState extends State<ProfilePage> {
                           child: Row(
                             children: [
                               IconButton(
-                                style: IconButton.styleFrom(
-                                  backgroundColor: Colors.white.withOpacity(0.2),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
+                                // style: IconButton.styleFrom(
+                                //   backgroundColor: Colors.white.withOpacity(
+                                //     0.2,
+                                //   ),
+                                //   shape: RoundedRectangleBorder(
+                                //     borderRadius: BorderRadius.circular(8),
+                                //   ),
+                                // ),
                                 icon: const Icon(
                                   Icons.refresh,
                                   color: Colors.white,
-                                  size: 22,
+                                  size: 24,
                                 ),
                                 onPressed: () {
                                   setState(() {
@@ -409,10 +411,10 @@ class _ProfilePageState extends State<ProfilePage> {
                           final data = snapshot.data!;
                           return _selectedTab == 0
                               ? _buildInformasiTab(
-                                  data,
-                                  infoLabelFont,
-                                  infoValueFont,
-                                )
+                                data,
+                                infoLabelFont,
+                                infoValueFont,
+                              )
                               : _buildDetailTab(infoLabelFont, infoValueFont);
                         },
                       ),
