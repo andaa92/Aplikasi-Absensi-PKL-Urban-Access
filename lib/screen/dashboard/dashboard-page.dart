@@ -224,6 +224,7 @@ class DashboardPageState extends State<DashboardPage> {
     Positioned(
       top: 40,
       right: 25,
+      child: IgnorePointer(
       child: Container(
         width: 90,
         height: 90,
@@ -232,64 +233,90 @@ class DashboardPageState extends State<DashboardPage> {
           color: Colors.white.withOpacity(0.1),
         ),
       ),
+     ),
+    ),
+
+     Positioned(
+      top: 40,
+      right: 25,
+      child: IgnorePointer( // ✅ Tambahkan ini agar tidak block touch
+        child: Container(
+          width: 90,
+          height: 90,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white.withOpacity(0.1),
+          ),
+        ),
+      ),
     ),
     Positioned(
       top: 100,
       right: 50,
-      child: Container(
-        width: 55,
-        height: 55,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.white.withOpacity(0.08),
+      child: IgnorePointer( // ✅ Tambahkan ini
+        child: Container(
+          width: 55,
+          height: 55,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white.withOpacity(0.08),
+          ),
         ),
       ),
     ),
     Positioned(
       top: 80,
       left: 35,
-      child: Container(
-        width: 70,
-        height: 70,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.white.withOpacity(0.12),
+      child: IgnorePointer( // ✅ Tambahkan ini
+        child: Container(
+          width: 70,
+          height: 70,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white.withOpacity(0.12),
+          ),
         ),
       ),
     ),
     Positioned(
       top: 30,
       left: 70,
-      child: Container(
-        width: 45,
-        height: 45,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.white.withOpacity(0.07),
+      child: IgnorePointer( // ✅ Tambahkan ini
+        child: Container(
+          width: 45,
+          height: 45,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white.withOpacity(0.07),
+          ),
         ),
       ),
     ),
     Positioned(
       top: 140,
       left: 100,
-      child: Container(
-        width: 35,
-        height: 35,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.white.withOpacity(0.09),
+      child: IgnorePointer( // ✅ Tambahkan ini
+        child: Container(
+          width: 35,
+          height: 35,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white.withOpacity(0.09),
+          ),
         ),
       ),
     ),
     Positioned(
       bottom: 30,
       right: 80,
-      child: Container(
-        width: 50,
-        height: 50,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.white.withOpacity(0.06),
+      child: IgnorePointer( // ✅ Tambahkan ini
+        child: Container(
+          width: 50,
+          height: 50,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white.withOpacity(0.06),
+          ),
         ),
       ),
     ),
