@@ -26,6 +26,9 @@ class _MainPageState extends State<MainPage> {
 
   final GlobalKey<DashboardPageState> _dashboardKey = GlobalKey<DashboardPageState>();
 
+  // ✅ simpan halaman agar tidak rebuild ulang
+  late final List<Widget> _pages;
+
   @override
   void initState() {
     super.initState();
@@ -50,6 +53,13 @@ class _MainPageState extends State<MainPage> {
     });
 
     await _loadAbsensiData(email);
+
+    // ✅ inisialisasi halaman hanya sekali
+    _pages = [
+      AbsensiPage(userEmail: _userEmail!), // tidak refresh tiap klik
+      DashboardPage(key: _dashboardKey),
+      const ProfilePage(),
+    ];
   }
 
   Future<void> _loadAbsensiData(String email) async {
@@ -92,14 +102,12 @@ class _MainPageState extends State<MainPage> {
       );
     }
 
-    final List<Widget> _pages = [
-      AbsensiPage(userEmail: _userEmail!), // ✅ email login dikirim ke AbsensiPage
-      DashboardPage(key: _dashboardKey),
-      const ProfilePage(),
-    ];
-
     return Scaffold(
-      body: _pages[_currentIndex],
+      // ✅ gunakan IndexedStack agar halaman tidak rebuild ulang
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _pages,
+      ),
       bottomNavigationBar: CustomBottomNav(
         currentIndex: _currentIndex,
         onTap: (index) {
@@ -107,10 +115,11 @@ class _MainPageState extends State<MainPage> {
             _currentIndex = index;
           });
 
-          if (index == 1) {
-            _dashboardKey.currentState?.refreshDashboard();
-            developer.log("🟢 Dashboard auto refresh ketika tab aktif");
-          }
+          // ❌ Hapus auto-refresh dashboard di sini
+          // if (index == 1) {
+          //   _dashboardKey.currentState?.refreshDashboard();
+          //   developer.log("🟢 Dashboard auto refresh ketika tab aktif");
+          // }
         },
       ),
     );
