@@ -77,11 +77,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   Container(
                     width: double.infinity,
                     decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Color(0xFF4FC3F7), Color(0xFF29B6F6)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
+                      color: Color(0xFF4FC3F7),
                       borderRadius: BorderRadius.only(
                         bottomLeft: Radius.circular(30),
                         bottomRight: Radius.circular(30),
@@ -318,25 +314,25 @@ class _ProfilePageState extends State<ProfilePage> {
                                   "${data.hadir}",
                                   "Tepat Waktu",
                                   const Color(0xFFD4F4DD),
-                                  const Color(0xFF5FAF5C),
+                                  const Color(0xFF4CAF50),
                                   statNumberFont,
                                   statLabelFont,
                                 ),
                               ),
-                              const SizedBox(width: 14),
+                              const SizedBox(width: 10),
                               Expanded(
                                 child: _buildStatCard(
                                   "${data.terlambat}",
                                   "Terlambat",
                                   const Color(0xFFFFDADA),
-                                  const Color(0xFFAF5C5C),
+                                  const Color(0xFFE57373),
                                   statNumberFont,
                                   statLabelFont,
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 14),
+                          const SizedBox(height: 10),
                           Row(
                             children: [
                               Expanded(
@@ -344,18 +340,18 @@ class _ProfilePageState extends State<ProfilePage> {
                                   "${data.izin}",
                                   "Izin",
                                   const Color(0xFFFFF4D4),
-                                  const Color(0xFFAF9A5C),
+                                  const Color(0xFFFFD54F),
                                   statNumberFont,
                                   statLabelFont,
                                 ),
                               ),
-                              const SizedBox(width: 14),
+                              const SizedBox(width: 10),
                               Expanded(
                                 child: _buildStatCard(
                                   "${data.sakit}",
                                   "Sakit",
                                   const Color(0xFFFFDCC4),
-                                  const Color(0xFFAF7A5C),
+                                  const Color(0xFFFF8A65),
                                   statNumberFont,
                                   statLabelFont,
                                 ),
@@ -440,6 +436,20 @@ class _ProfilePageState extends State<ProfilePage> {
     double valueFont,
     double labelFont,
   ) {
+    // Tentukan icon berdasarkan label
+    IconData icon;
+    if (label == "Tepat Waktu") {
+      icon = Icons.check_circle;
+    } else if (label == "Terlambat") {
+      icon = Icons.cancel;
+    } else if (label == "Izin") {
+      icon = Icons.error;
+    } else if (label == "Sakit") {
+      icon = Icons.medical_services;
+    } else {
+      icon = Icons.info;
+    }
+
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -450,28 +460,52 @@ class _ProfilePageState extends State<ProfilePage> {
         );
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 18),
+        padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
           color: bgColor,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(15),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              spreadRadius: 1,
+              blurRadius: 5,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Column(
           children: [
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: valueFont,
-                fontWeight: FontWeight.bold,
-                color: textColor,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: textColor.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(icon, color: textColor, size: 20),
+                ),
+              ],
             ),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: labelFont,
-                color: textColor,
-                fontWeight: FontWeight.w500,
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Colors.black54,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ],

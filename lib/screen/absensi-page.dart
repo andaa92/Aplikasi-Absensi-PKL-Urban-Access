@@ -287,96 +287,166 @@ void _applyFilter(String filter, DateTimeRange? range) async {
     );
   }
 
-  Widget _buildHeader() {
+ Widget _buildHeader() {
   final now = DateFormat('d MMMM yyyy', 'id_ID').format(DateTime.now());
 
-  return Container(
-    width: double.infinity,
-    decoration: const BoxDecoration(
-      gradient: LinearGradient(
-        colors: [Color(0xFF4FC3F7), Color(0xFF29B6F6)],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      ),
-      borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
-    ),
-    padding: const EdgeInsets.fromLTRB(20, 30, 24, 40),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  return Stack(
+    children: [
+      Container(
+        width: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF4FC3F7), Color(0xFF29B6F6)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 30, 24, 40),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            IconButton(
-              icon: const Icon(Icons.refresh, color: Colors.white, size: 26),
-              onPressed: _loadAbsensi,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.refresh, color: Colors.white, size: 26),
+                  onPressed: _loadAbsensi,
+                ),
+                Row(
+                  children: [
+                    FutureBuilder<String?>(
+                      future: _getUserName(),
+                      builder: (context, snapshot) {
+                        String namaUser = snapshot.data ?? 'User';
+                        List<String> parts = namaUser.split(' ');
+                        if (parts.length > 2) {
+                          namaUser = '${parts[0]} ${parts[1]}';
+                        }
+
+                        return Text(
+                          namaUser,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(width: 10),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) =>
+                                  const MainPage(initialIndex: 2)),
+                        );
+                      },
+                      child: const Icon(Icons.account_circle,
+                          color: Colors.white),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          Row(
-                    children: [
-                      FutureBuilder<String?>(
-                        future: _getUserName(),
-                        builder: (context, snapshot) {
-                          String namaUser = snapshot.data ?? 'User';
-                          List<String> parts = namaUser.split(' ');
-                          if (parts.length > 2) {
-                            namaUser = '${parts[0]} ${parts[1]}';
-                          }
-
-                          return Text(
-                            namaUser,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(width: 10),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) =>
-                                    const MainPage(initialIndex: 2)),
-                          );
-                        },
-                        child: const Icon(Icons.account_circle,
-                            color: Colors.white),
-                      ),
-                    ],
-                  ),
-                ],
+            const SizedBox(height: 25),
+            const Text(
+              'Riwayat Absensi',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
               ),
-
-
-        const SizedBox(height: 25),
-        const Text(
-          'Riwayat Absensi',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              now,
+              style: const TextStyle(
+                color: Color.fromARGB(198, 255, 255, 255),
+                fontSize: 16,
+              ),
+            ),
+          ],
+        ),
+      ),
+      // 🔹 LINGKARAN GELEMBUNG DEKORASI
+      Positioned(
+        top: 35,
+        right: 30,
+        child: Container(
+          width: 85,
+          height: 85,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white.withOpacity(0.1),
           ),
         ),
-          const SizedBox(height: 10),
-
-        Text(
-          now,
-          style: const TextStyle(
-            color: Color.fromARGB(198, 255, 255, 255),
-            fontSize: 16,
+      ),
+      Positioned(
+        top: 90,
+        right: 55,
+        child: Container(
+          width: 50,
+          height: 50,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white.withOpacity(0.08),
           ),
         ),
-       
-      ],
-    ),
-    
+      ),
+      Positioned(
+        top: 70,
+        left: 40,
+        child: Container(
+          width: 65,
+          height: 65,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white.withOpacity(0.12),
+          ),
+        ),
+      ),
+      Positioned(
+        top: 25,
+        left: 75,
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white.withOpacity(0.07),
+          ),
+        ),
+      ),
+      Positioned(
+        top: 130,
+        left: 90,
+        child: Container(
+          width: 35,
+          height: 35,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white.withOpacity(0.09),
+          ),
+        ),
+      ),
+      Positioned(
+        bottom: 25,
+        right: 70,
+        child: Container(
+          width: 45,
+          height: 45,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white.withOpacity(0.06),
+          ),
+        ),
+      ),
+    ],
   );
-
-  
 }
 
 

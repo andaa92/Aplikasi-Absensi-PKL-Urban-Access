@@ -115,109 +115,186 @@ class DashboardPageState extends State<DashboardPage> {
     return Column(
       children: [
         // ==== HEADER ====
-        Container(
-          padding: const EdgeInsets.fromLTRB(20, 30, 20, 40),
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF4FC3F7), Color(0xFF29B6F6)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.only(
-              bottomLeft: Radius.circular(30),
-              bottomRight: Radius.circular(30),
-            ),
-          ),
-          child: Column(
+       Stack(
+  children: [
+    Container(
+      padding: const EdgeInsets.fromLTRB(20, 30, 20, 40),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF4FC3F7), Color(0xFF29B6F6)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(30),
+          bottomRight: Radius.circular(30),
+        ),
+      ),
+      child: Column(
+        children: [
+          // === Bar Atas ===
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // === Bar Atas ===
+              // Tombol Logout & Refresh
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Tombol Logout & Refresh
-                  Row(
-                    children: [
-                      IconButton(
-                        onPressed: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => const LandingPage()),
-                          );
-                        },
-                        icon: const Icon(Icons.logout, color: Colors.white),
-                      ),
-                      IconButton(
-                        onPressed: refreshDashboard, // 🟢 pakai fungsi baru
-                        icon: const Icon(Icons.refresh, color: Colors.white),
-                      ),
-                    ],
+                  IconButton(
+                    onPressed: () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const LandingPage()),
+                      );
+                    },
+                    icon: const Icon(Icons.logout, color: Colors.white),
                   ),
-
-                  // Nama & Profil
-                  Row(
-                    children: [
-                      FutureBuilder<String?>(
-                        future: _getUserName(),
-                        builder: (context, snapshot) {
-                          String namaUser = snapshot.data ?? 'User';
-                          List<String> parts = namaUser.split(' ');
-                          if (parts.length > 2) {
-                            namaUser = '${parts[0]} ${parts[1]}';
-                          }
-
-                          return Text(
-                            namaUser,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(width: 10),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) =>
-                                    const MainPage(initialIndex: 2)),
-                          );
-                        },
-                        child: const Icon(Icons.account_circle,
-                            color: Colors.white),
-                      ),
-                    ],
+                  IconButton(
+                    onPressed: refreshDashboard, // 🟢 pakai fungsi baru
+                    icon: const Icon(Icons.refresh, color: Colors.white),
                   ),
                 ],
               ),
 
-              const SizedBox(height: 20),
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Dashboard',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold),
-                ),
-              ),
-              const SizedBox(height: 5),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  DateFormat("d MMMM yyyy", "id_ID").format(DateTime.now()),
-                  style:
-                      const TextStyle(color: Colors.white70, fontSize: 14),
-                ),
+              // Nama & Profil
+              Row(
+                children: [
+                  FutureBuilder<String?>(
+                    future: _getUserName(),
+                    builder: (context, snapshot) {
+                      String namaUser = snapshot.data ?? 'User';
+                      List<String> parts = namaUser.split(' ');
+                      if (parts.length > 2) {
+                        namaUser = '${parts[0]} ${parts[1]}';
+                      }
+
+                      return Text(
+                        namaUser,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(width: 10),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) =>
+                                const MainPage(initialIndex: 2)),
+                      );
+                    },
+                    child: const Icon(Icons.account_circle,
+                        color: Colors.white),
+                  ),
+                ],
               ),
             ],
           ),
+
+          const SizedBox(height: 20),
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Dashboard',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold),
+            ),
+          ),
+          const SizedBox(height: 5),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              DateFormat("d MMMM yyyy", "id_ID").format(DateTime.now()),
+              style:
+                  const TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+          ),
+        ],
+      ),
+    ),
+    // 🔹 LINGKARAN GELEMBUNG DEKORASI
+    Positioned(
+      top: 40,
+      right: 25,
+      child: Container(
+        width: 90,
+        height: 90,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.white.withOpacity(0.1),
         ),
+      ),
+    ),
+    Positioned(
+      top: 100,
+      right: 50,
+      child: Container(
+        width: 55,
+        height: 55,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.white.withOpacity(0.08),
+        ),
+      ),
+    ),
+    Positioned(
+      top: 80,
+      left: 35,
+      child: Container(
+        width: 70,
+        height: 70,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.white.withOpacity(0.12),
+        ),
+      ),
+    ),
+    Positioned(
+      top: 30,
+      left: 70,
+      child: Container(
+        width: 45,
+        height: 45,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.white.withOpacity(0.07),
+        ),
+      ),
+    ),
+    Positioned(
+      top: 140,
+      left: 100,
+      child: Container(
+        width: 35,
+        height: 35,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.white.withOpacity(0.09),
+        ),
+      ),
+    ),
+    Positioned(
+      bottom: 30,
+      right: 80,
+      child: Container(
+        width: 50,
+        height: 50,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.white.withOpacity(0.06),
+        ),
+      ),
+    ),
+  ],
+),
 
         // ==== CONTENT ====
         Expanded(
