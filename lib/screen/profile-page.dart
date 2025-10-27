@@ -150,6 +150,7 @@ class _ProfilePageState extends State<ProfilePage> {
                               ),
                             ),
                             const SizedBox(width: 40), // Balance spacing
+
                           ],
                         ),
                         const SizedBox(height: 15),
