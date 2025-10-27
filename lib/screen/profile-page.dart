@@ -19,6 +19,8 @@ class _ProfilePageState extends State<ProfilePage> {
   String? userEmail;
   bool isLoading = true;
   int _selectedTab = 0;
+  bool _isRefreshing = false;
+ DateTime? _lastRefreshTime;
 
   @override
   void initState() {
@@ -95,24 +97,50 @@ class _ProfilePageState extends State<ProfilePage> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            IconButton(
-                              icon: const Icon(
-                                Icons.refresh,
-                                color: Colors.white,
-                                size: 24,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  if (userEmail != null) {
-                                    futureProfile = apiService.fetchProfile(
-                                      userEmail!,
-                                    );
-                                    futureDashboard = apiService
-                                        .fetchDashboardData(userEmail!);
-                                  }
-                                });
-                              },
+                           IconButton(
+                            icon: Icon(
+                              Icons.refresh,
+                              color: _isRefreshing ? Colors.grey[300] : Colors.white,
+                              size: 24,
                             ),
+                            onPressed: () async {
+                              final now = DateTime.now();
+
+                              // Jika refresh ditekan lagi sebelum 5 detik
+                              if (_lastRefreshTime != null &&
+                                  now.difference(_lastRefreshTime!).inSeconds < 5) {
+                                int sisa = 5 - now.difference(_lastRefreshTime!).inSeconds;
+
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text("Tunggu $sisa detik lagi sebelum refresh"),
+                                    duration: const Duration(seconds: 2),
+                                    backgroundColor: const Color(0xFF6C93A7),
+                                  ),
+                                );
+                                return;
+                              }
+
+                              // Jika sudah lewat 5 detik, lakukan refresh
+                              setState(() {
+                                _isRefreshing = true;
+                                _lastRefreshTime = now;
+                              });
+
+                              if (userEmail != null) {
+                                setState(() {
+                                  futureProfile = apiService.fetchProfile(userEmail!);
+                                  futureDashboard = apiService.fetchDashboardData(userEmail!);
+                                });
+                              }
+
+                              // Nonaktifkan cooldown setelah 5 detik
+                              Future.delayed(const Duration(seconds: 5), () {
+                                if (mounted) setState(() => _isRefreshing = false);
+                              });
+                            },
+                          ),
+
                             const Text(
                               'Profil Saya',
                               style: TextStyle(

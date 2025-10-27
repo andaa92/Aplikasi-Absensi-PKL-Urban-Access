@@ -28,6 +28,8 @@ Future<String?> _getUserName() async {
 class DashboardPageState extends State<DashboardPage> {
   final ApiService apiService = ApiService();
   Future<DashboardData>? futureDashboard;
+  bool _isRefreshing = false;
+ DateTime? _lastRefreshTime;
 
   @override
   void initState() {
@@ -150,15 +152,47 @@ class DashboardPageState extends State<DashboardPage> {
                               color: Colors.white,
                             ), // 🔥 GANTI
                           ),
-                          IconButton(
-                            onPressed: refreshDashboard, // 🟢 pakai fungsi baru
-                            icon: const Icon(
-                              Icons.refresh,
-                              color: Colors.white,
+
+                                  IconButton(
+                              onPressed: () async {
+                                final now = DateTime.now();
+
+                                // 🔸 Kalau baru refresh dan belum 5 detik
+                                if (_lastRefreshTime != null &&
+                                    now.difference(_lastRefreshTime!).inSeconds < 5) {
+                                  int sisa = 5 - now.difference(_lastRefreshTime!).inSeconds;
+
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text("Tunggu $sisa detik lagi sebelum refresh"),
+                                      duration: const Duration(seconds: 2),
+                                      backgroundColor: const Color(0xFF6C93A7),
+                                    ),
+                                  );
+                                  return; // keluar biar gak refresh lagi
+                                }
+
+                                // 🔹 Kalau sudah lewat 5 detik, boleh refresh
+                                setState(() {
+                                  _isRefreshing = true;
+                                  _lastRefreshTime = now; // simpan waktu terakhir refresh
+                                });
+
+                                await refreshDashboard(); // jalankan fungsi refresh
+
+                                // 🔹 Setelah selesai, aktifkan lagi tombol
+                                if (mounted) {
+                                  setState(() => _isRefreshing = false);
+                                }
+                              },
+                              icon: Icon(
+                                Icons.refresh,
+                                color: _isRefreshing ? Colors.grey[300] : Colors.white,
+                              ),
                             ),
-                          ),
                         ],
                       ),
+
 
                       // Nama & Profil
                       Row(
@@ -1215,7 +1249,7 @@ void showLogoutConfirmationPopup(BuildContext context) {
                                 ],
                               ),
                               child: const Icon(
-                                Icons.logout_rounded,
+                                Icons.power_settings_new,
                                 size: 50,
                                 color: Colors.white,
                               ),
@@ -1995,3 +2029,5 @@ void showWaktuBelumCukupPopup(BuildContext context) {
     },
   );
 }
+
+
