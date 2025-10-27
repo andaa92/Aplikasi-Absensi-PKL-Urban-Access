@@ -82,6 +82,7 @@ flutter:
   assets:
     - assets/medima.jpeg
     - assets/logo.jpeg
+    - assets/logo-apk.png
     
 
   # An image asset can refer to one or more resolution-specific "variants", see
@@ -113,4 +114,4 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/logo.jpeg"
+  image_path: "assets/logo-apk.png"
