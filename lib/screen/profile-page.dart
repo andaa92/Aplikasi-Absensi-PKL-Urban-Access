@@ -113,15 +113,6 @@ class _ProfilePageState extends State<ProfilePage> {
                                 });
                               },
                             ),
-                            const Text(
-                              'Profil Saya',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(width: 40), // Balance spacing
                           ],
                         ),
                         const SizedBox(height: 15),
