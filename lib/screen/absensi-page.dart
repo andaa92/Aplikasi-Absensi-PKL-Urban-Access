@@ -21,6 +21,9 @@ class _AbsensiPageState extends State<AbsensiPage> {
   bool _isLoading = true;
   String? _errorMessage;
 
+  bool _isRefreshing = false;
+  DateTime? _lastRefreshTime; 
+
   String? _userName;
   String? _userEmail;
 
@@ -529,25 +532,65 @@ class _AbsensiPageState extends State<AbsensiPage> {
       children: [
         Container(
           width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(20, 30, 20, 40),
           decoration: const BoxDecoration(
             gradient: LinearGradient(
               colors: [Color(0xFF4FC3F7), Color(0xFF29B6F6)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
+            borderRadius: BorderRadius.only(
+              bottomLeft: Radius.circular(30),
+              bottomRight: Radius.circular(30),
+            ),
           ),
-          padding: const EdgeInsets.fromLTRB(20, 30, 24, 40),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // === Bar Atas ===
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.refresh, color: Colors.white, size: 26),
-                    onPressed: _loadAbsensi,
+                  // Tombol Refresh
+                 IconButton(
+                    onPressed: () async {
+                      final now = DateTime.now();
+
+                      // 🔸 Kalau baru refresh dan belum 5 detik
+                      if (_lastRefreshTime != null &&
+                          now.difference(_lastRefreshTime!).inSeconds < 5) {
+                        int sisa = 5 - now.difference(_lastRefreshTime!).inSeconds;
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text("Tunggu $sisa detik lagi sebelum refresh"),
+                            duration: const Duration(seconds: 2),
+                            backgroundColor: const Color(0xFF6C93A7),
+                          ),
+                        );
+                        return; // keluar biar gak refresh lagi
+                      }
+
+                      // 🔹 Kalau sudah lewat 5 detik, boleh refresh
+                      setState(() {
+                        _isRefreshing = true;
+                        _lastRefreshTime = now; // simpan waktu terakhir refresh
+                      });
+
+                      await _loadAbsensi(); // jalankan fungsi refresh
+
+                      // 🔹 Setelah selesai, aktifkan lagi tombol
+                      if (mounted) {
+                        setState(() => _isRefreshing = false);
+                      }
+                    },
+                    icon: Icon(
+                      Icons.refresh,
+                      color: _isRefreshing ? Colors.grey[300] : Colors.white,
+                    ),
                   ),
+
+  
+                  // Nama & Profil
                   Row(
                     children: [
                       FutureBuilder<String?>(
@@ -587,21 +630,24 @@ class _AbsensiPageState extends State<AbsensiPage> {
                   ),
                 ],
               ),
-              const SizedBox(height: 25),
-              const Text(
-                'Riwayat Absensi',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
+
+              const SizedBox(height: 20),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Riwayat Absensi',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold),
                 ),
               ),
-              const SizedBox(height: 10),
-              Text(
-                now,
-                style: const TextStyle(
-                  color: Color.fromARGB(198, 255, 255, 255),
-                  fontSize: 16,
+              const SizedBox(height: 5),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  now,
+                  style: const TextStyle(color: Colors.white70, fontSize: 14),
                 ),
               ),
             ],
@@ -609,11 +655,11 @@ class _AbsensiPageState extends State<AbsensiPage> {
         ),
         // 🔹 LINGKARAN GELEMBUNG DEKORASI
         Positioned(
-          top: 35,
-          right: 30,
+          top: 40,
+          right: 25,
           child: Container(
-            width: 85,
-            height: 85,
+            width: 90,
+            height: 90,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: Colors.white.withOpacity(0.1),
@@ -621,11 +667,11 @@ class _AbsensiPageState extends State<AbsensiPage> {
           ),
         ),
         Positioned(
-          top: 90,
-          right: 55,
+          top: 100,
+          right: 50,
           child: Container(
-            width: 50,
-            height: 50,
+            width: 55,
+            height: 55,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: Colors.white.withOpacity(0.08),
@@ -633,11 +679,11 @@ class _AbsensiPageState extends State<AbsensiPage> {
           ),
         ),
         Positioned(
-          top: 70,
-          left: 40,
+          top: 80,
+          left: 35,
           child: Container(
-            width: 65,
-            height: 65,
+            width: 70,
+            height: 70,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: Colors.white.withOpacity(0.12),
@@ -645,11 +691,11 @@ class _AbsensiPageState extends State<AbsensiPage> {
           ),
         ),
         Positioned(
-          top: 25,
-          left: 75,
+          top: 30,
+          left: 70,
           child: Container(
-            width: 40,
-            height: 40,
+            width: 45,
+            height: 45,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: Colors.white.withOpacity(0.07),
@@ -657,8 +703,8 @@ class _AbsensiPageState extends State<AbsensiPage> {
           ),
         ),
         Positioned(
-          top: 130,
-          left: 90,
+          top: 140,
+          left: 100,
           child: Container(
             width: 35,
             height: 35,
@@ -672,8 +718,8 @@ class _AbsensiPageState extends State<AbsensiPage> {
           bottom: 25,
           right: 70,
           child: Container(
-            width: 45,
-            height: 45,
+            width: 50,
+            height: 50,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: Colors.white.withOpacity(0.06),

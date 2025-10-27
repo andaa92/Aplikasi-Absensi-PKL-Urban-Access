@@ -19,6 +19,8 @@ class _ProfilePageState extends State<ProfilePage> {
   String? userEmail;
   bool isLoading = true;
   int _selectedTab = 0;
+  bool _isRefreshing = false;
+ DateTime? _lastRefreshTime;
 
   @override
   void initState() {
@@ -67,60 +69,91 @@ class _ProfilePageState extends State<ProfilePage> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
+      body: Column(
+        children: [
+          // 🔹 HEADER PROFIL FIXED dengan lingkaran gelembung
+          Stack(
             children: [
-              // 🔹 HEADER PROFIL dengan lingkaran gelembung
-              Stack(
-                children: [
-                  Container(
-                    width: double.infinity,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF4FC3F7),
-                      borderRadius: BorderRadius.only(
-                        bottomLeft: Radius.circular(30),
-                        bottomRight: Radius.circular(30),
-                      ),
-                    ),
+              Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF4FC3F7), Color(0xFF29B6F6)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(30),
+                    bottomRight: Radius.circular(30),
+                  ),
+                ),
+                child: SafeArea(
+                  bottom: false,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 15, 20, 25),
                     child: Column(
                       children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 12,
+                        // Bar Atas dengan Refresh dan Title
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                           IconButton(
+                            icon: Icon(
+                              Icons.refresh,
+                              color: _isRefreshing ? Colors.grey[300] : Colors.white,
+                              size: 24,
+                            ),
+                            onPressed: () async {
+                              final now = DateTime.now();
+
+                              // Jika refresh ditekan lagi sebelum 5 detik
+                              if (_lastRefreshTime != null &&
+                                  now.difference(_lastRefreshTime!).inSeconds < 5) {
+                                int sisa = 5 - now.difference(_lastRefreshTime!).inSeconds;
+
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text("Tunggu $sisa detik lagi sebelum refresh"),
+                                    duration: const Duration(seconds: 2),
+                                    backgroundColor: const Color(0xFF6C93A7),
+                                  ),
+                                );
+                                return;
+                              }
+
+                              // Jika sudah lewat 5 detik, lakukan refresh
+                              setState(() {
+                                _isRefreshing = true;
+                                _lastRefreshTime = now;
+                              });
+
+                              if (userEmail != null) {
+                                setState(() {
+                                  futureProfile = apiService.fetchProfile(userEmail!);
+                                  futureDashboard = apiService.fetchDashboardData(userEmail!);
+                                });
+                              }
+
+                              // Nonaktifkan cooldown setelah 5 detik
+                              Future.delayed(const Duration(seconds: 5), () {
+                                if (mounted) setState(() => _isRefreshing = false);
+                              });
+                            },
                           ),
-                          child: Row(
-                            children: [
-                              IconButton(
-                                // style: IconButton.styleFrom(
-                                //   backgroundColor: Colors.white.withOpacity(
-                                //     0.2,
-                                //   ),
-                                //   shape: RoundedRectangleBorder(
-                                //     borderRadius: BorderRadius.circular(8),
-                                //   ),
-                                // ),
-                                icon: const Icon(
-                                  Icons.refresh,
-                                  color: Colors.white,
-                                  size: 24,
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    if (userEmail != null) {
-                                      futureProfile = apiService.fetchProfile(
-                                        userEmail!,
-                                      );
-                                      futureDashboard = apiService
-                                          .fetchDashboardData(userEmail!);
-                                    }
-                                  });
-                                },
+
+                            const Text(
+                              'Profil Saya',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
                               ),
-                            ],
-                          ),
+                            ),
+                            const SizedBox(width: 40), // Balance spacing
+
+                          ],
                         ),
+                        const SizedBox(height: 15),
 
                         // 🔸 Profil Data
                         FutureBuilder<ProfileModel>(
@@ -129,7 +162,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             if (snapshot.connectionState ==
                                 ConnectionState.waiting) {
                               return const Padding(
-                                padding: EdgeInsets.all(20),
+                                padding: EdgeInsets.all(15),
                                 child: CircularProgressIndicator(
                                   color: Colors.white,
                                 ),
@@ -147,133 +180,288 @@ class _ProfilePageState extends State<ProfilePage> {
                             }
 
                             final data = snapshot.data!;
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 25),
-                              child: Column(
-                                children: [
-                                  const CircleAvatar(
-                                    radius: 55,
+                            return Column(
+                              children: [
+                                Container(
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.15),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: const CircleAvatar(
+                                    radius: 45,
                                     backgroundColor: Colors.white,
                                     child: Icon(
                                       Icons.person,
-                                      size: 60,
+                                      size: 50,
                                       color: Colors.grey,
                                     ),
                                   ),
-                                  const SizedBox(height: 10),
-                                  Text(
-                                    data.namaSiswa,
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: nameFont,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  data.namaSiswa,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: nameFont,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.3,
                                   ),
-                                  const SizedBox(height: 4),
-                                  Text(
+                                ),
+                                const SizedBox(height: 5),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(15),
+                                  ),
+                                  child: Text(
                                     data.namaJurusan,
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: jurusanFont,
+                                      fontWeight: FontWeight.w500,
                                     ),
                                   ),
-                                  const SizedBox(height: 3),
-                                  Text(
-                                    data.namaSekolah,
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: sekolahFont,
+                                ),
+                                const SizedBox(height: 6),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.school_rounded,
+                                      color: Colors.white.withOpacity(0.9),
+                                      size: 14,
                                     ),
-                                  ),
-                                ],
-                              ),
+                                    const SizedBox(width: 5),
+                                    Flexible(
+                                      child: Text(
+                                        data.namaSekolah,
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          color: Colors.white.withOpacity(0.95),
+                                          fontSize: sekolahFont,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             );
                           },
                         ),
                       ],
                     ),
                   ),
-                  // 🔹 LINGKARAN GELEMBUNG DEKORASI
-                  Positioned(
-                    top: 80,
-                    right: 30,
-                    child: Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withOpacity(0.1),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    top: 150,
-                    right: 60,
-                    child: Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withOpacity(0.08),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    top: 120,
-                    left: 30,
-                    child: Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withOpacity(0.12),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    top: 50,
-                    left: 60,
-                    child: Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withOpacity(0.07),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    top: 200,
-                    left: 80,
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withOpacity(0.09),
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
+              // 🔹 LINGKARAN GELEMBUNG DEKORASI
+              Positioned(
+                top: 40,
+                right: 25,
+                child: Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withOpacity(0.1),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 90,
+                right: 50,
+                child: Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withOpacity(0.08),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 70,
+                left: 30,
+                child: Container(
+                  width: 65,
+                  height: 65,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withOpacity(0.12),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 30,
+                left: 60,
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withOpacity(0.07),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 130,
+                left: 80,
+                child: Container(
+                  width: 35,
+                  height: 35,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withOpacity(0.09),
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: 20,
+                right: 70,
+                child: Container(
+                  width: 45,
+                  height: 45,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withOpacity(0.06),
+                  ),
+                ),
+              ),
+            ],
+          ),
 
-              // 🔹 Statistik Bulan Ini
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: FutureBuilder<DashboardData>(
-                  future: futureDashboard,
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    } else if (snapshot.hasError) {
-                      return Text('Error: ${snapshot.error}');
-                    } else if (!snapshot.hasData) {
-                      return const Text('Tidak ada data statistik');
-                    }
+          // 🔹 KONTEN YANG BISA DI-SCROLL
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  // 🔹 Statistik Bulan Ini
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: FutureBuilder<DashboardData>(
+                      future: futureDashboard,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const Center(child: CircularProgressIndicator());
+                        } else if (snapshot.hasError) {
+                          return Text('Error: ${snapshot.error}');
+                        } else if (!snapshot.hasData) {
+                          return const Text('Tidak ada data statistik');
+                        }
 
-                    final data = snapshot.data!;
-                    return Container(
-                      padding: const EdgeInsets.all(18),
+                        final data = snapshot.data!;
+                        return Container(
+                          padding: const EdgeInsets.all(18),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.08),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.show_chart, size: 18),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Statistik Bulan Ini',
+                                    style: TextStyle(
+                                      fontSize: tabFont,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  Text(
+                                    _getNamaBulan(DateTime.now().month),
+                                    style: TextStyle(
+                                      fontSize: infoLabelFont,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildStatCard(
+                                      "${data.hadir}",
+                                      "Tepat Waktu",
+                                      const Color(0xFFD4F4DD),
+                                      const Color(0xFF4CAF50),
+                                      statNumberFont,
+                                      statLabelFont,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: _buildStatCard(
+                                      "${data.terlambat}",
+                                      "Terlambat",
+                                      const Color(0xFFFFDADA),
+                                      const Color(0xFFE57373),
+                                      statNumberFont,
+                                      statLabelFont,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildStatCard(
+                                      "${data.izin}",
+                                      "Izin",
+                                      const Color(0xFFFFF4D4),
+                                      const Color(0xFFFFD54F),
+                                      statNumberFont,
+                                      statLabelFont,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: _buildStatCard(
+                                      "${data.sakit}",
+                                      "Sakit",
+                                      const Color(0xFFFFDCC4),
+                                      const Color(0xFFFF8A65),
+                                      statNumberFont,
+                                      statLabelFont,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+
+                  // 🔹 Tab Informasi & Detail
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 10,
+                    ),
+                    child: Container(
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
@@ -289,142 +477,45 @@ class _ProfilePageState extends State<ProfilePage> {
                         children: [
                           Row(
                             children: [
-                              const Icon(Icons.show_chart, size: 18),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Statistik Bulan Ini',
-                                style: TextStyle(
-                                  fontSize: tabFont,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const Spacer(),
-                              Text(
-                                _getNamaBulan(DateTime.now().month),
-                                style: TextStyle(
-                                  fontSize: infoLabelFont,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
+                              _buildTabButton('Informasi', 0, tabFont),
+                              _buildTabButton('Detail', 1, tabFont),
                             ],
                           ),
-                          const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildStatCard(
-                                  "${data.hadir}",
-                                  "Tepat Waktu",
-                                  const Color(0xFFD4F4DD),
-                                  const Color(0xFF4CAF50),
-                                  statNumberFont,
-                                  statLabelFont,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: _buildStatCard(
-                                  "${data.terlambat}",
-                                  "Terlambat",
-                                  const Color(0xFFFFDADA),
-                                  const Color(0xFFE57373),
-                                  statNumberFont,
-                                  statLabelFont,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildStatCard(
-                                  "${data.izin}",
-                                  "Izin",
-                                  const Color(0xFFFFF4D4),
-                                  const Color(0xFFFFD54F),
-                                  statNumberFont,
-                                  statLabelFont,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: _buildStatCard(
-                                  "${data.sakit}",
-                                  "Sakit",
-                                  const Color(0xFFFFDCC4),
-                                  const Color(0xFFFF8A65),
-                                  statNumberFont,
-                                  statLabelFont,
-                                ),
-                              ),
-                            ],
+                          FutureBuilder<ProfileModel>(
+                            future: futureProfile,
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return const Padding(
+                                  padding: EdgeInsets.all(20),
+                                  child: CircularProgressIndicator(),
+                                );
+                              } else if (snapshot.hasError) {
+                                return Text('Error: ${snapshot.error}');
+                              } else if (!snapshot.hasData) {
+                                return const Text('Tidak ada data');
+                              }
+
+                              final data = snapshot.data!;
+                              return _selectedTab == 0
+                                  ? _buildInformasiTab(
+                                      data,
+                                      infoLabelFont,
+                                      infoValueFont,
+                                    )
+                                  : _buildDetailTab(infoLabelFont, infoValueFont);
+                            },
                           ),
                         ],
                       ),
-                    );
-                  },
-                ),
-              ),
-
-              // 🔹 Tab Informasi & Detail
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 10,
-                ),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+                    ),
                   ),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          _buildTabButton('Informasi', 0, tabFont),
-                          _buildTabButton('Detail', 1, tabFont),
-                        ],
-                      ),
-                      FutureBuilder<ProfileModel>(
-                        future: futureProfile,
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState ==
-                              ConnectionState.waiting) {
-                            return const Padding(
-                              padding: EdgeInsets.all(20),
-                              child: CircularProgressIndicator(),
-                            );
-                          } else if (snapshot.hasError) {
-                            return Text('Error: ${snapshot.error}');
-                          } else if (!snapshot.hasData) {
-                            return const Text('Tidak ada data');
-                          }
-
-                          final data = snapshot.data!;
-                          return _selectedTab == 0
-                              ? _buildInformasiTab(
-                                data,
-                                infoLabelFont,
-                                infoValueFont,
-                              )
-                              : _buildDetailTab(infoLabelFont, infoValueFont);
-                        },
-                      ),
-                    ],
-                  ),
-                ),
+                  const SizedBox(height: 20),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
