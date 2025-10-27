@@ -13,7 +13,7 @@
         android:requestLegacyExternalStorage="true"
         android:hardwareAccelerated="true"
         android:usesCleartextTraffic="true"
-        android:label="absensi_pkl_urban"
+        android:label="Absensi Siswa PKL"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
 
