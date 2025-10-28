@@ -692,95 +692,44 @@ class DashboardPageState extends State<DashboardPage> {
   }
 
   Future<void> _absenPulang() async {
-    try {
-      // 🕔 Cek waktu sekarang
-      DateTime now = DateTime.now();
-      if (now.hour < 17) {
-        // ✨ GANTI dengan popup menarik
-        showWaktuBelumCukupPopup(context);
-        return; // ⛔ Stop di sini kalau belum jam 17.00
-      }
-
-      // 🛑 Cek fake GPS sebelum lanjut
-      bool isFake = await checkFakeLocation(context);
-      if (isFake) return;
-
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Layanan lokasi tidak aktif")),
-        );
-        return;
-      }
-
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text("Izin lokasi ditolak")));
-          return;
-        }
-      }
-
-      if (permission == LocationPermission.deniedForever) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Izin lokasi ditolak permanen")),
-        );
-        return;
-      }
-
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-
-      const double officeLatitude = -6.947716562093121;
-      const double officeLongitude = 107.6271448595231;
-      double distance = Geolocator.distanceBetween(
-        position.latitude,
-        position.longitude,
-        officeLatitude,
-        officeLongitude,
-      );
-
-      if (distance <= 50) {
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        String? userEmail = prefs.getString('email');
-
-        if (userEmail == null || userEmail.isEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Email tidak ditemukan, silakan login ulang."),
-            ),
-          );
-          return;
-        }
-
-        final response = await apiService.absenPulangSiswa(userEmail);
-
-        if (response['statusCode'] == 200) {
-          showSuccessPopup(context, response['msg']);
-          await refreshDashboard();
-        } else {
-          showErrorPopup(context, response['msg'] ?? 'Gagal absen pulang');
-        }
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              "Anda di luar area absensi (${distance.toStringAsFixed(1)} m)",
-            ),
-          ),
-        );
-      }
-    } catch (e) {
-      print("❌ Error absen pulang: $e");
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Terjadi kesalahan: $e")));
+  try {
+    // 🕔 Cek waktu sekarang
+    DateTime now = DateTime.now();
+    if (now.hour < 17) {
+      // ✨ Popup jika belum jam 17.00
+      showWaktuBelumCukupPopup(context);
+      return;
     }
+
+    // ✅ Langsung absen tanpa cek lokasi
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? userEmail = prefs.getString('email');
+
+    if (userEmail == null || userEmail.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Email tidak ditemukan, silakan login ulang.")),
+      );
+      return;
+    }
+
+    // 🔥 Kirim request ke API
+    final response = await apiService.absenPulangSiswa(userEmail);
+
+    if (response['statusCode'] == 200) {
+      showSuccessPopup(context, response['msg']);
+      await refreshDashboard();
+    } else {
+      showErrorPopup(context, response['msg'] ?? 'Gagal absen pulang');
+    }
+
+  } catch (e) {
+    print("❌ Error absen pulang: $e");
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text("Terjadi kesalahan: $e")));
   }
+}
+
 
   Timer? _timer;
   Duration _remainingTime = Duration.zero;
