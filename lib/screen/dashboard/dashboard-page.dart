@@ -12,6 +12,7 @@ import 'package:geolocator/geolocator.dart';
 import 'dart:async';
 import 'package:percent_indicator/percent_indicator.dart';
 import 'package:ntp/ntp.dart';
+import 'package:network_info_plus/network_info_plus.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({Key? key}) : super(key: key);
@@ -29,7 +30,8 @@ class DashboardPageState extends State<DashboardPage> {
   final ApiService apiService = ApiService();
   Future<DashboardData>? futureDashboard;
   bool _isRefreshing = false;
- DateTime? _lastRefreshTime;
+  DateTime? _lastRefreshTime;
+  bool _isButtonLocked = false;
 
   @override
   void initState() {
@@ -153,46 +155,54 @@ class DashboardPageState extends State<DashboardPage> {
                             ), // 🔥 GANTI
                           ),
 
-                                  IconButton(
-                              onPressed: () async {
-                                final now = DateTime.now();
+                          IconButton(
+                            onPressed: () async {
+                              final now = DateTime.now();
 
-                                // 🔸 Kalau baru refresh dan belum 5 detik
-                                if (_lastRefreshTime != null &&
-                                    now.difference(_lastRefreshTime!).inSeconds < 5) {
-                                  int sisa = 5 - now.difference(_lastRefreshTime!).inSeconds;
+                              // 🔸 Kalau baru refresh dan belum 5 detik
+                              if (_lastRefreshTime != null &&
+                                  now.difference(_lastRefreshTime!).inSeconds <
+                                      5) {
+                                int sisa =
+                                    5 -
+                                    now.difference(_lastRefreshTime!).inSeconds;
 
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text("Tunggu $sisa detik lagi sebelum refresh"),
-                                      duration: const Duration(seconds: 2),
-                                      backgroundColor: const Color(0xFF6C93A7),
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      "Tunggu $sisa detik lagi sebelum refresh",
                                     ),
-                                  );
-                                  return; // keluar biar gak refresh lagi
-                                }
+                                    duration: const Duration(seconds: 2),
+                                    backgroundColor: const Color(0xFF6C93A7),
+                                  ),
+                                );
+                                return; // keluar biar gak refresh lagi
+                              }
 
-                                // 🔹 Kalau sudah lewat 5 detik, boleh refresh
-                                setState(() {
-                                  _isRefreshing = true;
-                                  _lastRefreshTime = now; // simpan waktu terakhir refresh
-                                });
+                              // 🔹 Kalau sudah lewat 5 detik, boleh refresh
+                              setState(() {
+                                _isRefreshing = true;
+                                _lastRefreshTime =
+                                    now; // simpan waktu terakhir refresh
+                              });
 
-                                await refreshDashboard(); // jalankan fungsi refresh
+                              await refreshDashboard(); // jalankan fungsi refresh
 
-                                // 🔹 Setelah selesai, aktifkan lagi tombol
-                                if (mounted) {
-                                  setState(() => _isRefreshing = false);
-                                }
-                              },
-                              icon: Icon(
-                                Icons.refresh,
-                                color: _isRefreshing ? Colors.grey[300] : Colors.white,
-                              ),
+                              // 🔹 Setelah selesai, aktifkan lagi tombol
+                              if (mounted) {
+                                setState(() => _isRefreshing = false);
+                              }
+                            },
+                            icon: Icon(
+                              Icons.refresh,
+                              color:
+                                  _isRefreshing
+                                      ? Colors.grey[300]
+                                      : Colors.white,
                             ),
+                          ),
                         ],
                       ),
-
 
                       // Nama & Profil
                       Row(
@@ -607,129 +617,109 @@ class DashboardPageState extends State<DashboardPage> {
   }
 
   Future<void> _absenManual() async {
-    try {
-      // 🛑 Cek fake GPS sebelum lanjut
-      bool isFake = await checkFakeLocation(context);
-      if (isFake) return;
-
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Layanan lokasi tidak aktif")),
-        );
-        return;
-      }
-
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text("Izin lokasi ditolak")));
-          return;
-        }
-      }
-
-      if (permission == LocationPermission.deniedForever) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Izin lokasi ditolak permanen")),
-        );
-        return;
-      }
-
-      // ✅ Ambil posisi setelah lolos pengecekan
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-
-      const double officeLatitude = -6.947716562093121;
-      const double officeLongitude = 107.6271448595231;
-
-      double distance = Geolocator.distanceBetween(
-        position.latitude,
-        position.longitude,
-        officeLatitude,
-        officeLongitude,
-      );
-
-      if (distance <= 50) {
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        String? userEmail = prefs.getString('email');
-
-        if (userEmail == null || userEmail.isEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Email tidak ditemukan, silakan login ulang."),
-            ),
-          );
-          return;
-        }
-
-        final response = await apiService.absenMasukSiswa(userEmail);
-
-        if (response['statusCode'] == 200) {
-          showSuccessPopup(context, response['msg']);
-          await refreshDashboard();
-        } else {
-          showErrorPopup(context, response['msg'] ?? 'Gagal absen pulang');
-        }
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              "Anda di luar area absensi (${distance.toStringAsFixed(1)} m)",
-            ),
-          ),
-        );
-      }
-    } catch (e) {
-      print("❌ Error absen manual: $e");
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Terjadi kesalahan: $e")));
-    }
-  }
-
-  Future<void> _absenPulang() async {
   try {
-    // 🕔 Cek waktu sekarang
-    DateTime now = DateTime.now();
-    if (now.hour < 17) {
-      // ✨ Popup jika belum jam 17.00
-      showWaktuBelumCukupPopup(context);
+    bool isWifiOK = await checkWifi();
+    if (!isWifiOK) {
+      showWifiErrorBottomSheet(context);
       return;
     }
 
-    // ✅ Langsung absen tanpa cek lokasi
+    // 🔑 Ambil email user dari SharedPreferences
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? userEmail = prefs.getString('email');
 
     if (userEmail == null || userEmail.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Email tidak ditemukan, silakan login ulang.")),
+        const SnackBar(
+          content: Text("Email tidak ditemukan, silakan login ulang."),
+        ),
       );
       return;
     }
 
-    // 🔥 Kirim request ke API
-    final response = await apiService.absenPulangSiswa(userEmail);
+    // 📡 Kirim request absen
+    final response = await apiService.absenMasukSiswa(userEmail);
 
     if (response['statusCode'] == 200) {
       showSuccessPopup(context, response['msg']);
       await refreshDashboard();
     } else {
-      showErrorPopup(context, response['msg'] ?? 'Gagal absen pulang');
+      showErrorPopup(context, response['msg'] ?? 'Gagal absen');
     }
-
   } catch (e) {
-    print("❌ Error absen pulang: $e");
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text("Terjadi kesalahan: $e")));
+    print("❌ Error absen manual: $e");
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text("Terjadi kesalahan: $e")));
   }
 }
 
+  Future<DateTime?> getServerTime() async {
+    try {
+      return await NTP.now();
+    } catch (e) {
+      debugPrint('❌ Error saat mengambil waktu server: $e');
+      return null;
+    }
+  }
+
+  Future<void> _absenPulang() async {
+    try {
+      // ⏳ Ambil jam server, bukan jam HP
+      DateTime? now = await getServerTime();
+
+      if (now == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Gagal mengambil jam server")),
+        );
+        return;
+      }
+
+      // 🟢 Tentukan jam pulang berdasarkan hari server
+      bool isJumat = now.weekday == DateTime.friday;
+
+      DateTime jamPulangWajib = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        17,
+        isJumat ? 30 : 0, // Jumat 17:30, lainnya 17:00
+      );
+
+      // ❗ Cek apakah sudah boleh pulang
+      if (now.isBefore(jamPulangWajib)) {
+        showWaktuBelumCukupPopup(context);
+        return;
+      }
+
+      // Ambil email user
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? userEmail = prefs.getString('email');
+
+      if (userEmail == null || userEmail.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Email tidak ditemukan, silakan login ulang."),
+          ),
+        );
+        return;
+      }
+
+      // 🔥 Kirim request absen pulang ke API
+      final response = await apiService.absenPulangSiswa(userEmail);
+
+      if (response['statusCode'] == 200) {
+        showSuccessPopup(context, response['msg']);
+        await refreshDashboard();
+      } else {
+        showErrorPopup(context, response['msg'] ?? 'Gagal absen pulang');
+      }
+    } catch (e) {
+      print("❌ Error absen pulang: $e");
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Terjadi kesalahan: $e")));
+    }
+  }
 
   Timer? _timer;
   Duration _remainingTime = Duration.zero;
@@ -756,8 +746,21 @@ class DashboardPageState extends State<DashboardPage> {
       ntpTime.day,
       startHour,
     );
-    final endTime = DateTime(ntpTime.year, ntpTime.month, ntpTime.day, endHour);
+
+    // =====================================================
+    // 🟢 Logika jam pulang otomatis (Senin–Kamis: 17.00, Jumat: 17.30)
+    bool isJumat = ntpTime.weekday == DateTime.friday;
+
+    final endTime = DateTime(
+      ntpTime.year,
+      ntpTime.month,
+      ntpTime.day,
+      endHour, // tetap 17
+      isJumat ? 30 : 0, // Jumat → 17:30, selain itu → 17:00
+    );
+
     final totalDuration = endTime.difference(startTime).inSeconds;
+    // =====================================================
 
     _timer?.cancel(); // hentikan timer lama sebelum buat baru
 
@@ -909,10 +912,18 @@ class DashboardPageState extends State<DashboardPage> {
     }
   }
 
-  // Added method card for choosing absen method (Finger / Face)
   Widget _buildMethodCard(String title, IconData icon, VoidCallback onTap) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: _isButtonLocked
+        ? null
+        : () async {
+            setState(() => _isButtonLocked = true); // 🔒 Kunci tombol
+
+            await Future.delayed(const Duration(milliseconds: 200)); 
+            onTap(); // Jalankan fungsi absen
+
+            setState(() => _isButtonLocked = false); // 🔓 Buka lagi
+          },
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
         decoration: BoxDecoration(
@@ -950,7 +961,7 @@ class DashboardPageState extends State<DashboardPage> {
       ),
     );
   }
-
+  
   // Added action button used for Izin / Sakit
   Widget _buildActionButton(String title, Color color, VoidCallback onTap) {
     return SizedBox(
@@ -1979,4 +1990,148 @@ void showWaktuBelumCukupPopup(BuildContext context) {
   );
 }
 
+Future<bool> checkWifi() async {
+  final info = NetworkInfo();
+  String? wifiName = await info.getWifiName();
 
+  // Android kadang return "URBAN-OFFICE" dengan tanda kutip
+  wifiName = wifiName?.replaceAll('"', '');
+
+  const allowedWifi = "Medima-Guest";
+
+  return wifiName == allowedWifi;
+}
+
+void showWifiErrorBottomSheet(BuildContext context) {
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: Colors.transparent,
+    builder: (BuildContext context) {
+      return Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle bar
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            
+            // Icon dengan animasi
+            TweenAnimationBuilder(
+              tween: Tween<double>(begin: 0, end: 1),
+              duration: const Duration(milliseconds: 600),
+              builder: (context, double value, child) {
+                return Transform.scale(
+                  scale: value,
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.wifi_off_rounded,
+                      size: 56,
+                      color: Colors.red.shade600,
+                    ),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 24),
+            
+            // Title
+            const Text(
+              'WiFi Kantor Diperlukan',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 12),
+            
+            // Message
+            Text(
+              'Pastikan perangkat Anda terhubung ke jaringan WiFi kantor untuk melakukan absensi',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 15,
+                color: Colors.grey.shade700,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 28),
+            
+            // Buttons
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      side: BorderSide(color: Colors.grey.shade300),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Tutup',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      // TODO: Buka pengaturan WiFi
+                    },
+                    icon: const Icon(Icons.settings, size: 20),
+                    label: const Text(
+                      'Pengaturan',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red.shade600,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: MediaQuery.of(context).padding.bottom + 8),
+          ],
+        ),
+      );
+    },
+  );
+}
