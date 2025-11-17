@@ -1985,8 +1985,6 @@ void showWaktuBelumCukupPopup(BuildContext context) {
     },
   );
 }
-<<<<<<< HEAD
-=======
 
 Future<bool> checkWifi() async {
   final info = NetworkInfo();
@@ -1999,4 +1997,3 @@ Future<bool> checkWifi() async {
 
   return wifiName == allowedWifi;
 }
->>>>>>> 2877f1ff4c1dd36de9bf96910e284ab61ccbfcf7
