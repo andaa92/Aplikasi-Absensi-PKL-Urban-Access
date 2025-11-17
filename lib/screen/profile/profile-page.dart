@@ -1,10 +1,10 @@
+import 'package:absensi_pkl_urban/screen/profile/informasi-page.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:absensi_pkl_urban/models/profile_model.dart';
 import 'package:absensi_pkl_urban/models/dashboard_model.dart';
 import 'package:absensi_pkl_urban/services/api_service.dart';
 import 'package:absensi_pkl_urban/screen/main-page.dart';
-import 'package:absensi_pkl_urban/screen/profile/informasi-page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({Key? key}) : super(key: key);
@@ -51,7 +51,7 @@ class _ProfilePageState extends State<ProfilePage> {
       MaterialPageRoute(builder: (context) => InformasiPage()),
     );
     
-
+   
   }
 
   @override
@@ -84,6 +84,7 @@ class _ProfilePageState extends State<ProfilePage> {
           // 🔹 HEADER PROFIL FIXED dengan lingkaran gelembung
           Stack(
             children: [
+              // Background gradient dan decorations
               Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
@@ -155,16 +156,8 @@ class _ProfilePageState extends State<ProfilePage> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            // 🔹 ICON BANTUAN DI KANAN ATAS
-                            IconButton(
-                              icon: const Icon(
-                                Icons.help_outline,
-                                color: Colors.white,
-                                size: 24,
-                              ),
-                              onPressed: _navigateToBantuan,
-                              tooltip: 'Pusat Bantuan',
-                            ),
+                            // Spacer untuk balance
+                            const SizedBox(width: 40),
                           ],
                         ),
                         const SizedBox(height: 15),
@@ -277,76 +270,106 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                 ),
               ),
-              // 🔹 LINGKARAN GELEMBUNG DEKORASI
+              
+              // 🔹 LINGKARAN GELEMBUNG DEKORASI (di belakang)
               Positioned(
                 top: 40,
                 right: 25,
-                child: Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.1),
+                child: IgnorePointer(
+                  child: Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withOpacity(0.1),
+                    ),
                   ),
                 ),
               ),
               Positioned(
                 top: 90,
                 right: 50,
-                child: Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.08),
+                child: IgnorePointer(
+                  child: Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withOpacity(0.08),
+                    ),
                   ),
                 ),
               ),
               Positioned(
                 top: 70,
                 left: 30,
-                child: Container(
-                  width: 65,
-                  height: 65,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.12),
+                child: IgnorePointer(
+                  child: Container(
+                    width: 65,
+                    height: 65,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withOpacity(0.12),
+                    ),
                   ),
                 ),
               ),
               Positioned(
                 top: 30,
                 left: 60,
-                child: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.07),
+                child: IgnorePointer(
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withOpacity(0.07),
+                    ),
                   ),
                 ),
               ),
               Positioned(
                 top: 130,
                 left: 80,
-                child: Container(
-                  width: 35,
-                  height: 35,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.09),
+                child: IgnorePointer(
+                  child: Container(
+                    width: 35,
+                    height: 35,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withOpacity(0.09),
+                    ),
                   ),
                 ),
               ),
               Positioned(
                 bottom: 20,
                 right: 70,
-                child: Container(
-                  width: 45,
-                  height: 45,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.06),
+                child: IgnorePointer(
+                  child: Container(
+                    width: 45,
+                    height: 45,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withOpacity(0.06),
+                    ),
+                  ),
+                ),
+              ),
+              
+              // 🔹 ICON BANTUAN DI KANAN ATAS (di depan, pasti bisa diklik)
+              Positioned(
+                top: 14,
+                right: 0,
+                child: SafeArea(
+                  child: IconButton(
+                    icon: const Icon(
+                      Icons.help_outline,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                    onPressed: _navigateToBantuan,
+                    tooltip: 'Pusat Bantuan',
                   ),
                 ),
               ),
@@ -525,7 +548,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
                   // 🔹 CARD PUSAT BANTUAN (DIAM DI BAWAH)
                   Padding(
-                    
                     padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
                     child: Material(
                       color: Colors.transparent,
