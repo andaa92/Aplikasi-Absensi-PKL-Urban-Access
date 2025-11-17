@@ -12,6 +12,7 @@ import 'package:geolocator/geolocator.dart';
 import 'dart:async';
 import 'package:percent_indicator/percent_indicator.dart';
 import 'package:ntp/ntp.dart';
+import 'package:network_info_plus/network_info_plus.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({Key? key}) : super(key: key);
@@ -615,89 +616,46 @@ class DashboardPageState extends State<DashboardPage> {
   }
 
   Future<void> _absenManual() async {
-    try {
-      // 🛑 Cek fake GPS sebelum lanjut
-      bool isFake = await checkFakeLocation(context);
-      if (isFake) return;
-
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Layanan lokasi tidak aktif")),
-        );
-        return;
-      }
-
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text("Izin lokasi ditolak")));
-          return;
-        }
-      }
-
-      if (permission == LocationPermission.deniedForever) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Izin lokasi ditolak permanen")),
-        );
-        return;
-      }
-
-      // ✅ Ambil posisi setelah lolos pengecekan
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
+  try {
+    // 🔒 WAJIB Terhubung ke WiFi kantor
+    bool isWifiOK = await checkWifi();
+    if (!isWifiOK) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Anda harus terhubung ke WiFi kantor untuk absen"),
+        ),
       );
-
-      const double officeLatitude = -6.947716562093121;
-      const double officeLongitude = 107.6271448595231;
-
-      double distance = Geolocator.distanceBetween(
-        position.latitude,
-        position.longitude,
-        officeLatitude,
-        officeLongitude,
-      );
-
-      if (distance <= 50) {
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        String? userEmail = prefs.getString('email');
-
-        if (userEmail == null || userEmail.isEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Email tidak ditemukan, silakan login ulang."),
-            ),
-          );
-          return;
-        }
-
-        final response = await apiService.absenMasukSiswa(userEmail);
-
-        if (response['statusCode'] == 200) {
-          showSuccessPopup(context, response['msg']);
-          await refreshDashboard();
-        } else {
-          showErrorPopup(context, response['msg'] ?? 'Gagal absen pulang');
-        }
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              "Anda di luar area absensi (${distance.toStringAsFixed(1)} m)",
-            ),
-          ),
-        );
-      }
-    } catch (e) {
-      print("❌ Error absen manual: $e");
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Terjadi kesalahan: $e")));
+      return;
     }
+
+    // 🔑 Ambil email user dari SharedPreferences
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? userEmail = prefs.getString('email');
+
+    if (userEmail == null || userEmail.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Email tidak ditemukan, silakan login ulang."),
+        ),
+      );
+      return;
+    }
+
+    // 📡 Kirim request absen
+    final response = await apiService.absenMasukSiswa(userEmail);
+
+    if (response['statusCode'] == 200) {
+      showSuccessPopup(context, response['msg']);
+      await refreshDashboard();
+    } else {
+      showErrorPopup(context, response['msg'] ?? 'Gagal absen');
+    }
+  } catch (e) {
+    print("❌ Error absen manual: $e");
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text("Terjadi kesalahan: $e")));
   }
+}
 
   Future<DateTime?> getServerTime() async {
     try {
@@ -2027,3 +1985,18 @@ void showWaktuBelumCukupPopup(BuildContext context) {
     },
   );
 }
+<<<<<<< HEAD
+=======
+
+Future<bool> checkWifi() async {
+  final info = NetworkInfo();
+  String? wifiName = await info.getWifiName();
+
+  // Android kadang return "URBAN-OFFICE" dengan tanda kutip
+  wifiName = wifiName?.replaceAll('"', '');
+
+  const allowedWifi = "Medima-Guest";
+
+  return wifiName == allowedWifi;
+}
+>>>>>>> 2877f1ff4c1dd36de9bf96910e284ab61ccbfcf7
