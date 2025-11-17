@@ -31,6 +31,7 @@ class DashboardPageState extends State<DashboardPage> {
   Future<DashboardData>? futureDashboard;
   bool _isRefreshing = false;
   DateTime? _lastRefreshTime;
+  bool _isButtonLocked = false;
 
   @override
   void initState() {
@@ -617,14 +618,9 @@ class DashboardPageState extends State<DashboardPage> {
 
   Future<void> _absenManual() async {
   try {
-    // 🔒 WAJIB Terhubung ke WiFi kantor
     bool isWifiOK = await checkWifi();
     if (!isWifiOK) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Anda harus terhubung ke WiFi kantor untuk absen"),
-        ),
-      );
+      showWifiErrorBottomSheet(context);
       return;
     }
 
@@ -916,10 +912,18 @@ class DashboardPageState extends State<DashboardPage> {
     }
   }
 
-  // Added method card for choosing absen method (Finger / Face)
   Widget _buildMethodCard(String title, IconData icon, VoidCallback onTap) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: _isButtonLocked
+        ? null
+        : () async {
+            setState(() => _isButtonLocked = true); // 🔒 Kunci tombol
+
+            await Future.delayed(const Duration(milliseconds: 200)); 
+            onTap(); // Jalankan fungsi absen
+
+            setState(() => _isButtonLocked = false); // 🔓 Buka lagi
+          },
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
         decoration: BoxDecoration(
@@ -957,7 +961,7 @@ class DashboardPageState extends State<DashboardPage> {
       ),
     );
   }
-
+  
   // Added action button used for Izin / Sakit
   Widget _buildActionButton(String title, Color color, VoidCallback onTap) {
     return SizedBox(
@@ -1996,4 +2000,138 @@ Future<bool> checkWifi() async {
   const allowedWifi = "Medima-Guest";
 
   return wifiName == allowedWifi;
+}
+
+void showWifiErrorBottomSheet(BuildContext context) {
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: Colors.transparent,
+    builder: (BuildContext context) {
+      return Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle bar
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            
+            // Icon dengan animasi
+            TweenAnimationBuilder(
+              tween: Tween<double>(begin: 0, end: 1),
+              duration: const Duration(milliseconds: 600),
+              builder: (context, double value, child) {
+                return Transform.scale(
+                  scale: value,
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.wifi_off_rounded,
+                      size: 56,
+                      color: Colors.red.shade600,
+                    ),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 24),
+            
+            // Title
+            const Text(
+              'WiFi Kantor Diperlukan',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 12),
+            
+            // Message
+            Text(
+              'Pastikan perangkat Anda terhubung ke jaringan WiFi kantor untuk melakukan absensi',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 15,
+                color: Colors.grey.shade700,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 28),
+            
+            // Buttons
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      side: BorderSide(color: Colors.grey.shade300),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Tutup',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      // TODO: Buka pengaturan WiFi
+                    },
+                    icon: const Icon(Icons.settings, size: 20),
+                    label: const Text(
+                      'Pengaturan',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red.shade600,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: MediaQuery.of(context).padding.bottom + 8),
+          ],
+        ),
+      );
+    },
+  );
 }
