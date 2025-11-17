@@ -1997,9 +1997,14 @@ Future<bool> checkWifi() async {
   // Android kadang return "URBAN-OFFICE" dengan tanda kutip
   wifiName = wifiName?.replaceAll('"', '');
 
-  const allowedWifi = "Medima-Guest";
+  const allowedWifi = [
 
-  return wifiName == allowedWifi;
+  "Medima-Guest",
+  "Medima",
+  "Medima5G",
+  ];
+
+return allowedWifi.contains(wifiName);
 }
 
 void showWifiErrorBottomSheet(BuildContext context) {

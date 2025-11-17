@@ -24,7 +24,6 @@ class _AbsensiPageState extends State<AbsensiPage> {
   bool _isRefreshing = false;
   DateTime? _lastRefreshTime; 
 
-  String? _userName;
   String? _userEmail;
 
   // Filter state
@@ -51,7 +50,6 @@ class _AbsensiPageState extends State<AbsensiPage> {
     print('DEBUG: name = $name, email = $email');
 
     setState(() {
-      _userName = name ?? 'User';
       _userEmail = email ?? '';
     });
 
