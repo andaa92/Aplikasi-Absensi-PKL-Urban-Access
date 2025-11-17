@@ -29,7 +29,7 @@ class DashboardPageState extends State<DashboardPage> {
   final ApiService apiService = ApiService();
   Future<DashboardData>? futureDashboard;
   bool _isRefreshing = false;
- DateTime? _lastRefreshTime;
+  DateTime? _lastRefreshTime;
 
   @override
   void initState() {
@@ -153,46 +153,54 @@ class DashboardPageState extends State<DashboardPage> {
                             ), // 🔥 GANTI
                           ),
 
-                                  IconButton(
-                              onPressed: () async {
-                                final now = DateTime.now();
+                          IconButton(
+                            onPressed: () async {
+                              final now = DateTime.now();
 
-                                // 🔸 Kalau baru refresh dan belum 5 detik
-                                if (_lastRefreshTime != null &&
-                                    now.difference(_lastRefreshTime!).inSeconds < 5) {
-                                  int sisa = 5 - now.difference(_lastRefreshTime!).inSeconds;
+                              // 🔸 Kalau baru refresh dan belum 5 detik
+                              if (_lastRefreshTime != null &&
+                                  now.difference(_lastRefreshTime!).inSeconds <
+                                      5) {
+                                int sisa =
+                                    5 -
+                                    now.difference(_lastRefreshTime!).inSeconds;
 
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text("Tunggu $sisa detik lagi sebelum refresh"),
-                                      duration: const Duration(seconds: 2),
-                                      backgroundColor: const Color(0xFF6C93A7),
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      "Tunggu $sisa detik lagi sebelum refresh",
                                     ),
-                                  );
-                                  return; // keluar biar gak refresh lagi
-                                }
+                                    duration: const Duration(seconds: 2),
+                                    backgroundColor: const Color(0xFF6C93A7),
+                                  ),
+                                );
+                                return; // keluar biar gak refresh lagi
+                              }
 
-                                // 🔹 Kalau sudah lewat 5 detik, boleh refresh
-                                setState(() {
-                                  _isRefreshing = true;
-                                  _lastRefreshTime = now; // simpan waktu terakhir refresh
-                                });
+                              // 🔹 Kalau sudah lewat 5 detik, boleh refresh
+                              setState(() {
+                                _isRefreshing = true;
+                                _lastRefreshTime =
+                                    now; // simpan waktu terakhir refresh
+                              });
 
-                                await refreshDashboard(); // jalankan fungsi refresh
+                              await refreshDashboard(); // jalankan fungsi refresh
 
-                                // 🔹 Setelah selesai, aktifkan lagi tombol
-                                if (mounted) {
-                                  setState(() => _isRefreshing = false);
-                                }
-                              },
-                              icon: Icon(
-                                Icons.refresh,
-                                color: _isRefreshing ? Colors.grey[300] : Colors.white,
-                              ),
+                              // 🔹 Setelah selesai, aktifkan lagi tombol
+                              if (mounted) {
+                                setState(() => _isRefreshing = false);
+                              }
+                            },
+                            icon: Icon(
+                              Icons.refresh,
+                              color:
+                                  _isRefreshing
+                                      ? Colors.grey[300]
+                                      : Colors.white,
                             ),
+                          ),
                         ],
                       ),
-
 
                       // Nama & Profil
                       Row(
@@ -691,45 +699,73 @@ class DashboardPageState extends State<DashboardPage> {
     }
   }
 
-  Future<void> _absenPulang() async {
-  try {
-    // 🕔 Cek waktu sekarang
-    DateTime now = DateTime.now();
-    if (now.hour < 17) {
-      // ✨ Popup jika belum jam 17.00
-      showWaktuBelumCukupPopup(context);
-      return;
+  Future<DateTime?> getServerTime() async {
+    try {
+      return await NTP.now();
+    } catch (e) {
+      debugPrint('❌ Error saat mengambil waktu server: $e');
+      return null;
     }
-
-    // ✅ Langsung absen tanpa cek lokasi
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? userEmail = prefs.getString('email');
-
-    if (userEmail == null || userEmail.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Email tidak ditemukan, silakan login ulang.")),
-      );
-      return;
-    }
-
-    // 🔥 Kirim request ke API
-    final response = await apiService.absenPulangSiswa(userEmail);
-
-    if (response['statusCode'] == 200) {
-      showSuccessPopup(context, response['msg']);
-      await refreshDashboard();
-    } else {
-      showErrorPopup(context, response['msg'] ?? 'Gagal absen pulang');
-    }
-
-  } catch (e) {
-    print("❌ Error absen pulang: $e");
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text("Terjadi kesalahan: $e")));
   }
-}
 
+  Future<void> _absenPulang() async {
+    try {
+      // ⏳ Ambil jam server, bukan jam HP
+      DateTime? now = await getServerTime();
+
+      if (now == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Gagal mengambil jam server")),
+        );
+        return;
+      }
+
+      // 🟢 Tentukan jam pulang berdasarkan hari server
+      bool isJumat = now.weekday == DateTime.friday;
+
+      DateTime jamPulangWajib = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        17,
+        isJumat ? 30 : 0, // Jumat 17:30, lainnya 17:00
+      );
+
+      // ❗ Cek apakah sudah boleh pulang
+      if (now.isBefore(jamPulangWajib)) {
+        showWaktuBelumCukupPopup(context);
+        return;
+      }
+
+      // Ambil email user
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? userEmail = prefs.getString('email');
+
+      if (userEmail == null || userEmail.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Email tidak ditemukan, silakan login ulang."),
+          ),
+        );
+        return;
+      }
+
+      // 🔥 Kirim request absen pulang ke API
+      final response = await apiService.absenPulangSiswa(userEmail);
+
+      if (response['statusCode'] == 200) {
+        showSuccessPopup(context, response['msg']);
+        await refreshDashboard();
+      } else {
+        showErrorPopup(context, response['msg'] ?? 'Gagal absen pulang');
+      }
+    } catch (e) {
+      print("❌ Error absen pulang: $e");
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Terjadi kesalahan: $e")));
+    }
+  }
 
   Timer? _timer;
   Duration _remainingTime = Duration.zero;
@@ -756,8 +792,21 @@ class DashboardPageState extends State<DashboardPage> {
       ntpTime.day,
       startHour,
     );
-    final endTime = DateTime(ntpTime.year, ntpTime.month, ntpTime.day, endHour);
+
+    // =====================================================
+    // 🟢 Logika jam pulang otomatis (Senin–Kamis: 17.00, Jumat: 17.30)
+    bool isJumat = ntpTime.weekday == DateTime.friday;
+
+    final endTime = DateTime(
+      ntpTime.year,
+      ntpTime.month,
+      ntpTime.day,
+      endHour, // tetap 17
+      isJumat ? 30 : 0, // Jumat → 17:30, selain itu → 17:00
+    );
+
     final totalDuration = endTime.difference(startTime).inSeconds;
+    // =====================================================
 
     _timer?.cancel(); // hentikan timer lama sebelum buat baru
 
@@ -1978,5 +2027,3 @@ void showWaktuBelumCukupPopup(BuildContext context) {
     },
   );
 }
-
-
