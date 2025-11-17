@@ -65,7 +65,7 @@ class DetailAbsen extends StatelessWidget {
               // Card 3: Ketentuan Absen Pulang
               _buildInfoCard(
                 icon: Icons.schedule_rounded,
-                iconColor: Colors.orange[700]!,
+                iconColor: const Color.fromARGB(255, 173, 173, 173)!,
                 title: 'Ketentuan Absen Pulang',
                 description: 'Absen pulang hanya dapat dilakukan setelah waktu kerja Anda selesai sesuai dengan jadwal yang telah ditentukan. Sistem akan secara otomatis membandingkan waktu absen Anda dengan jadwal kerja hari tersebut.',
                 additionalInfo: 'Untuk mengetahui jam kerja Anda hari ini, silakan cek detail informasi di menu Jadwal Kerja.',
