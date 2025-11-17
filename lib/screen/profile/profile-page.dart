@@ -4,6 +4,7 @@ import 'package:absensi_pkl_urban/models/profile_model.dart';
 import 'package:absensi_pkl_urban/models/dashboard_model.dart';
 import 'package:absensi_pkl_urban/services/api_service.dart';
 import 'package:absensi_pkl_urban/screen/main-page.dart';
+import 'package:absensi_pkl_urban/screen/profile/informasi-page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({Key? key}) : super(key: key);
@@ -20,7 +21,7 @@ class _ProfilePageState extends State<ProfilePage> {
   bool isLoading = true;
   int _selectedTab = 0;
   bool _isRefreshing = false;
- DateTime? _lastRefreshTime;
+  DateTime? _lastRefreshTime;
 
   @override
   void initState() {
@@ -42,6 +43,15 @@ class _ProfilePageState extends State<ProfilePage> {
     } else {
       setState(() => isLoading = false);
     }
+  }
+
+  void _navigateToBantuan() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => InformasiPage()),
+    );
+    
+
   }
 
   @override
@@ -97,50 +107,46 @@ class _ProfilePageState extends State<ProfilePage> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                           IconButton(
-                            icon: Icon(
-                              Icons.refresh,
-                              color: _isRefreshing ? Colors.grey[300] : Colors.white,
-                              size: 24,
-                            ),
-                            onPressed: () async {
-                              final now = DateTime.now();
+                            IconButton(
+                              icon: Icon(
+                                Icons.refresh,
+                                color: _isRefreshing ? Colors.grey[300] : Colors.white,
+                                size: 24,
+                              ),
+                              onPressed: () async {
+                                final now = DateTime.now();
 
-                              // Jika refresh ditekan lagi sebelum 5 detik
-                              if (_lastRefreshTime != null &&
-                                  now.difference(_lastRefreshTime!).inSeconds < 5) {
-                                int sisa = 5 - now.difference(_lastRefreshTime!).inSeconds;
+                                if (_lastRefreshTime != null &&
+                                    now.difference(_lastRefreshTime!).inSeconds < 5) {
+                                  int sisa = 5 - now.difference(_lastRefreshTime!).inSeconds;
 
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text("Tunggu $sisa detik lagi sebelum refresh"),
-                                    duration: const Duration(seconds: 2),
-                                    backgroundColor: const Color(0xFF6C93A7),
-                                  ),
-                                );
-                                return;
-                              }
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text("Tunggu $sisa detik lagi sebelum refresh"),
+                                      duration: const Duration(seconds: 2),
+                                      backgroundColor: const Color(0xFF6C93A7),
+                                    ),
+                                  );
+                                  return;
+                                }
 
-                              // Jika sudah lewat 5 detik, lakukan refresh
-                              setState(() {
-                                _isRefreshing = true;
-                                _lastRefreshTime = now;
-                              });
-
-                              if (userEmail != null) {
                                 setState(() {
-                                  futureProfile = apiService.fetchProfile(userEmail!);
-                                  futureDashboard = apiService.fetchDashboardData(userEmail!);
+                                  _isRefreshing = true;
+                                  _lastRefreshTime = now;
                                 });
-                              }
 
-                              // Nonaktifkan cooldown setelah 5 detik
-                              Future.delayed(const Duration(seconds: 5), () {
-                                if (mounted) setState(() => _isRefreshing = false);
-                              });
-                            },
-                          ),
+                                if (userEmail != null) {
+                                  setState(() {
+                                    futureProfile = apiService.fetchProfile(userEmail!);
+                                    futureDashboard = apiService.fetchDashboardData(userEmail!);
+                                  });
+                                }
 
+                                Future.delayed(const Duration(seconds: 5), () {
+                                  if (mounted) setState(() => _isRefreshing = false);
+                                });
+                              },
+                            ),
                             const Text(
                               'Profil Saya',
                               style: TextStyle(
@@ -149,8 +155,16 @@ class _ProfilePageState extends State<ProfilePage> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            const SizedBox(width: 40), // Balance spacing
-
+                            // 🔹 ICON BANTUAN DI KANAN ATAS
+                            IconButton(
+                              icon: const Icon(
+                                Icons.help_outline,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                              onPressed: _navigateToBantuan,
+                              tooltip: 'Pusat Bantuan',
+                            ),
                           ],
                         ),
                         const SizedBox(height: 15),
@@ -159,8 +173,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         FutureBuilder<ProfileModel>(
                           future: futureProfile,
                           builder: (context, snapshot) {
-                            if (snapshot.connectionState ==
-                                ConnectionState.waiting) {
+                            if (snapshot.connectionState == ConnectionState.waiting) {
                               return const Padding(
                                 padding: EdgeInsets.all(15),
                                 child: CircularProgressIndicator(
@@ -484,8 +497,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           FutureBuilder<ProfileModel>(
                             future: futureProfile,
                             builder: (context, snapshot) {
-                              if (snapshot.connectionState ==
-                                  ConnectionState.waiting) {
+                              if (snapshot.connectionState == ConnectionState.waiting) {
                                 return const Padding(
                                   padding: EdgeInsets.all(20),
                                   child: CircularProgressIndicator(),
@@ -510,6 +522,83 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                     ),
                   ),
+
+                  // 🔹 CARD PUSAT BANTUAN (DIAM DI BAWAH)
+                  Padding(
+                    
+                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: _navigateToBantuan,
+                        borderRadius: BorderRadius.circular(16),
+                        splashColor: const Color(0xFF4FC3F7).withOpacity(0.2),
+                        highlightColor: const Color(0xFF4FC3F7).withOpacity(0.1),
+                        child: Ink(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.08),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Container(
+                            padding: const EdgeInsets.all(20),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF4FC3F7).withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Icon(
+                                    Icons.help_outline,
+                                    color: Color(0xFF4FC3F7),
+                                    size: 28,
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Pusat Bantuan',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Butuh bantuan? Hubungi kami',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.chevron_right,
+                                  color: Colors.grey[400],
+                                  size: 24,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  
                   const SizedBox(height: 20),
                 ],
               ),
@@ -529,7 +618,6 @@ class _ProfilePageState extends State<ProfilePage> {
     double valueFont,
     double labelFont,
   ) {
-    // Tentukan icon berdasarkan label
     IconData icon;
     if (label == "Tepat Waktu") {
       icon = Icons.check_circle;
@@ -617,10 +705,9 @@ class _ProfilePageState extends State<ProfilePage> {
           decoration: BoxDecoration(
             border: Border(
               bottom: BorderSide(
-                color:
-                    _selectedTab == index
-                        ? const Color(0xFF4FC3F7)
-                        : Colors.transparent,
+                color: _selectedTab == index
+                    ? const Color(0xFF4FC3F7)
+                    : Colors.transparent,
                 width: 3,
               ),
             ),
@@ -630,10 +717,9 @@ class _ProfilePageState extends State<ProfilePage> {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: fontSize,
-              color:
-                  _selectedTab == index
-                      ? const Color(0xFF4FC3F7)
-                      : Colors.grey[600],
+              color: _selectedTab == index
+                  ? const Color(0xFF4FC3F7)
+                  : Colors.grey[600],
               fontWeight: FontWeight.w600,
             ),
           ),

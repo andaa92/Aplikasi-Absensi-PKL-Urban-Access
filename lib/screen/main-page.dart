@@ -2,7 +2,7 @@ import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:absensi_pkl_urban/screen/absensi-page.dart';
-import 'package:absensi_pkl_urban/screen/profile-page.dart';
+import 'package:absensi_pkl_urban/screen/profile/profile-page.dart';
 import 'package:absensi_pkl_urban/navigation/navigation-item.dart';
 import 'package:absensi_pkl_urban/screen/dashboard/dashboard-page.dart';
 import 'package:absensi_pkl_urban/services/api_service.dart';

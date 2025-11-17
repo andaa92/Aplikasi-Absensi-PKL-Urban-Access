@@ -2,7 +2,7 @@
 import 'package:absensi_pkl_urban/screen/login/login-page.dart';
 import 'package:flutter/material.dart';
 import 'package:absensi_pkl_urban/screen/main-page.dart';
-import 'package:absensi_pkl_urban/screen/profile-page.dart';
+import 'package:absensi_pkl_urban/screen/profile/profile-page.dart';
 import 'package:absensi_pkl_urban/screen/login/landing-page.dart';
 import 'package:absensi_pkl_urban/screen/dashboard/absen-face.dart';
 import 'package:absensi_pkl_urban/screen/dashboard/absen-finger.dart';
