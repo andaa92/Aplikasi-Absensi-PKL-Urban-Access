@@ -28,6 +28,11 @@ Future<String?> _getUserName() async {
 
 class DashboardPageState extends State<DashboardPage> {
   final ApiService apiService = ApiService();
+  // ===== Geofencing / Office location (adjust to your office coordinates) =====
+  // Update these values to match the office location used to allow absensi
+  final double _officeLatitude = -6.9478314; // Lokasi kantor sebenarnya
+  final double _officeLongitude = 107.6271945; // Lokasi kantor sebenarnya
+  final double _allowedRadiusMeters = 300; // allow absensi within 300 meters
   Future<DashboardData>? futureDashboard;
   bool _isRefreshing = false;
   DateTime? _lastRefreshTime;
@@ -617,13 +622,64 @@ class DashboardPageState extends State<DashboardPage> {
   }
 
   Future<void> _absenManual() async {
-  try {
-    bool isWifiOK = await checkWifi();
-    if (!isWifiOK) {
-      showWifiErrorBottomSheet(context);
-      return;
-    }
+    try {
+      // 🔥 PRIORITAS 1: Cek WiFi kantor dulu
+      bool isWifiOK = await checkWifi();
 
+      if (isWifiOK) {
+        // ✅ WiFi kantor OK -> langsung absen
+        await _processAbsen();
+        return;
+      }
+
+      // ⚠️ WiFi gagal -> FALLBACK ke geofencing (GPS)
+      
+      // Cek lokasi palsu terlebih dahulu
+      bool isFake = await checkFakeLocation(context);
+      if (isFake) return; // dialog sudah ditampilkan
+
+      Position position;
+      try {
+        position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+        );
+      } catch (e) {
+        // Tidak bisa ambil lokasi -> error
+        debugPrint('❌ Error ambil lokasi: $e');
+        showWifiErrorBottomSheet(context);
+        return;
+      }
+
+      final distanceMeters = Geolocator.distanceBetween(
+        position.latitude,
+        position.longitude,
+        _officeLatitude,
+        _officeLongitude,
+      );
+
+      debugPrint('📍 Posisi user: ${position.latitude}, ${position.longitude}');
+      debugPrint('📍 Kantor: $_officeLatitude, $_officeLongitude');
+      debugPrint('📏 Jarak: $distanceMeters meter (radius: $_allowedRadiusMeters meter)');
+
+      // ✅ Jika dalam radius yang diizinkan -> bisa absen (fallback WiFi)
+      if (distanceMeters <= _allowedRadiusMeters) {
+        debugPrint('✅ Dalam radius, lanjut absen');
+        // Berada dalam radius kantor -> lanjutkan absen
+        await _processAbsen();
+      } else {
+        debugPrint('❌ Di luar radius (${(distanceMeters - _allowedRadiusMeters).toStringAsFixed(2)} meter terlalu jauh)');
+        // Jauh dari kantor dan WiFi tidak OK -> error
+        showWifiErrorBottomSheet(context);
+      }
+    } catch (e) {
+      print("❌ Error absen manual: $e");
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Terjadi kesalahan: $e")));
+    }
+  }
+
+  // Helper untuk proses absen (dipanggil dari WiFi OK atau geofence OK)
+  Future<void> _processAbsen() async {
     // 🔑 Ambil email user dari SharedPreferences
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? userEmail = prefs.getString('email');
@@ -646,12 +702,7 @@ class DashboardPageState extends State<DashboardPage> {
     } else {
       showErrorPopup(context, response['msg'] ?? 'Gagal absen');
     }
-  } catch (e) {
-    print("❌ Error absen manual: $e");
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text("Terjadi kesalahan: $e")));
   }
-}
 
   Future<DateTime?> getServerTime() async {
     try {
